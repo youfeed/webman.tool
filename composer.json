@@ -1,0 +1,13 @@
+{
+  "name": "youloge/tool",
+  "type": "library",
+  "license": "MIT",
+  "description": "Webman plugin youloge/tool",
+  "require": {
+  },
+  "autoload": {
+    "psr-4": {
+      "Youloge\\Tool\\": "src"
+    }
+  }
+}
