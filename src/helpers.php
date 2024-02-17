@@ -32,6 +32,8 @@ if(!function_exists('shuffle_base32')){
 if(!function_exists('runRedis')){
   function runRedis($method,$params)
   {
+    $config = config('redis');
+    return $config;
     $redis = new Redis;
     $redis->connect('127.0.0.1', 6379);
     $data = $redis->$method(...$params);
