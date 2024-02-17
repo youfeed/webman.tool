@@ -32,10 +32,11 @@ if(!function_exists('shuffle_base32')){
 if(!function_exists('runRedis')){
   function runRedis($method,$params)
   {
-    $config = config('redis');
-    return $config;
+    @['host'=>$host,'password'=>$password,'port'=>$port,'database'=>$database] = config('redis.default');
     $redis = new Redis;
-    $redis->connect('127.0.0.1', 6379);
+    $redis->connect($host, $port);
+    $password && $redis->auth($password); // 默认 null
+    $database && $redis->select($database); // 默认 0表
     $data = $redis->$method(...$params);
     $redis->close();
     return $data;
