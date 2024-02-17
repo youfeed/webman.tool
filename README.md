@@ -22,6 +22,9 @@ composer require youloge/tool
 
 
 ### `ini('NAME.NAME','default')` 读取*.env* 配置文件
+
+> 以下保留字不得用作 ini 文件的键：null、yes、no、true、false、on、off、none。此外，密钥中不得使用以下保留字符：{}|&~!()^"。
+
 - `NAME.NAME` 配置文件`.env` 键值
 - `default(可选值)` 默认值
 ```php
