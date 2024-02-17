@@ -27,6 +27,31 @@ composer require youloge/tool
 
 - `NAME.NAME` 配置文件`.env` 键值
 - `default(可选值)` 默认值
+
+`.env`配置文件 使用以下格式
+
+```env
+[MYSQL]
+HOST=127.0.0.1
+PASSWORD=这里写密码
+DATABASE=这里写数据库名
+PORT=3306
+USER=这里写用户名
+
+[REDIS]
+HOST=127.0.0.1
+PORT=6379
+PASSWORD=这里写密码
+```
+> 使用方法
 ```php
 ini('MYSQL.HOST','127.0.0.1'); // 读取配置文件 如果未找到则返回 `127.0.0.1`
+```
+
+### `shuffle_base32(4)` 打乱字符串
+
+> 打乱字符`23456789ABCDEFGHJKLMNPQRSTUVWXYZ`
+
+```php
+shuffle_base32(4) // 最大长度 32 
 ```
