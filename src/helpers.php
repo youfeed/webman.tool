@@ -42,3 +42,52 @@ if(!function_exists('runRedis')){
     return $data;
   }
 }
+/**
+ * Queue 投递消息到队列
+ * 依赖 webman/redis-queue
+ */
+if(!function_exists('runQueue')){
+  function runQueue($queue,$data,$delay=0)
+  {
+    $_waiting = '{redis-queue}-waiting';
+    $_delay = '{redis-queue}-delayed';
+    $now = time();
+    $package = json_encode([
+        'id'       => rand(),
+        'time'     => $now,
+        'delay'    => $delay,
+        'attempts' => 0,
+        'queue'    => $queue,
+        'data'     => $data
+    ]);
+    if ($delay) {
+        return runRedis('zAdd',[$_delay,$now + $delay,$package]);
+    }
+    return runRedis('lPush',[$_waiting.$queue,$package])->lPush($queue_waiting.$queue, $package);
+  }
+}
+/**
+ * 请求外部接口
+ * 依赖 webman/http-client
+ * 'https://example.com/'
+ * [
+ *   'method' => 'POST',
+ *   'version' => '1.1',
+ *   'headers' => ['Connection' => 'keep-alive'],
+ *   'data' => ['key1' => 'value1', 'key2' => 'value2']
+ * ]
+ */
+if(!function_exists('runRequest')){
+  function runRequest($url,$options)
+  {
+    $http = new Workerman\Http\Client();
+    $body = (string)$http->request($url,$options)->getBody();
+    return json_decode($body,true) ?? $body;
+  }
+}
+/**
+ * 针对runRequest进行特定请求封装
+ * JSONRPC youloge.rpc 请求
+ * MEILISEARCH 美丽搜索引擎 请求
+ * 
+ */
