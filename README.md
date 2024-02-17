@@ -21,7 +21,9 @@ composer require youloge/tool
 > 插件已经 引入了以下助手函数 `以下函数名不要重复`
 
 
-### `ini()` 读取*.env* 配置文件
+### `ini('NAME.NAME','default')` 读取*.env* 配置文件
+- `NAME.NAME` 配置文件`.env` 键值
+- `default(可选值)` 默认值
 ```php
-ini('NAME.NAME','2333'); // 读取配置文件
+ini('MYSQL.HOST','127.0.0.1'); // 读取配置文件 如果未找到则返回 `127.0.0.1`
 ```
