@@ -226,6 +226,53 @@ if(!function_exists('safe_base64_decode')){
     }
 }
 /**
+ * 构造腾讯云请求体 - 配置路径(一律小写)：[youloge.{appid}.secretid|secretkey]
+ * 签名方法：TC3-HMAC-SHA256
+ * @param string $method  请求方式 GET/POST
+ * @param string $endpoint_action_version_region  接入点/方法/版本/区域 
+ * trtc.tencentcloudapi.com/DescribeInstances/2019-07-22/ap-guangzhou
+ * @param array $payload  请求载体 无参数时 设为[],null,false,0 即可
+ * @param string $appid  选择那个商户id下得的证书
+ */
+if(!function_exists('tencent_request')){
+  function tencent_request($method,$endpoint_action_version_region,$payload,$appid)
+  {
+    @['secretid'=>$SecretId,'secretkey'=>$SecretKey] = config("youloge.$appid");
+    @[$Endpoint,$Action,$Version,$Region] =  $tencent = explode('/',$endpoint_action_version_region);
+    @[$Server] = explode('.',$Endpoint);$data = $payload ? json_encode($payload,320) : '';$method = strtoupper($method);
+    // 准备参数
+    $Timestamp = time();
+    $Timesdate = gmdate("Y-m-d",$Timestamp);
+    $body_h256 = hash('SHA256',$data);
+    // 第一步
+    $request_h256 = hash('SHA256',"$method\n/\n\ncontent-type:application/json\nhost:$Endpoint\n\ncontent-type;host\n$body_h256");
+    // 第二步
+    $StringToSign = "TC3-HMAC-SHA256\n$Timestamp\n$Timesdate/$Server/tc3_request\n$request_h256";
+    // 第三步
+    $SecretDate = hash_hmac('SHA256', $Timesdate,"TC3$SecretKey", true);
+    $SecretService = hash_hmac('SHA256',$Server,$SecretDate, true);
+    $SecretSigning = hash_hmac('SHA256',"tc3_request",$SecretService, true);
+    $Signature = hash_hmac('SHA256',$StringToSign,$SecretSigning);
+    // 第四步
+    $Authorization = "TC3-HMAC-SHA256 Credential=$SecretId/$Timesdate/$Server/tc3_request, SignedHeaders=content-type;host, Signature=$Signature";
+    $header = [
+      "Authorization"=>"$Authorization",
+      "Content-Type"=>"application/json", // ; charset=utf-8
+      "X-TC-Action"=>"$Action",
+      "X-TC-Version"=>"$Version",
+      "X-TC-Timestamp"=>"$Timestamp"
+    ];
+    $Region && $header['X-TC-Region'] = $Region;
+    // 第五步
+    return ["https://$Endpoint",[
+        'method' => $method,
+        'headers' => $header,
+        'data' => $data,
+      ]
+    ];
+  }
+}
+/**
  * 七牛签名 - 配置文件读取[youloge.qiniu.ak/sk]
  * qiniu_hmac 
  * 

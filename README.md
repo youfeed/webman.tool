@@ -218,14 +218,27 @@ runRedis($method,$params)
 
 ### 安全的base64编码
 
-* 
-
 ```
 safe_base64_encode($data);
 safe_base64_decode($data);
 ```
 
-### 七牛签名 - 配置文件读取[youloge.qiniu.ak/sk]
+### 构造腾讯云请求体 - 配置路径(一律小写)：[youloge.{appid}.secretid|secretkey]
+* 签名方法：TC3-HMAC-SHA256
+* @param string $method  请求方式 GET/POST
+* @param string $endpoint_action_version_region  接入点/方法/版本/区域 
+* @param array $payload  请求载体 无参数时 设为[],null,false,0 即可
+* @param string $appid  选择那个appid下得的证书
+
+```
+   tencent_request($method,$endpoint_action_version_region,$payload,$appid)
+   $method = POST
+   // 接入点/方法/版本/区域(可选参数)
+   trtc.tencentcloudapi.com/DescribeInstances/2019-07-22/ap-guangzhou
+```
+
+
+### 七牛签名 - 配置文件读取[youloge.qiniu.ak|sk]
 
 >
 
