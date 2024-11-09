@@ -67,6 +67,17 @@ return $config;
 
 ### 示例代码 - 辅助辅助 函数还是要配合代码食用才香~
 
+### 示例：`腾讯云短信SMS号码查询`
+> 就是这么简单 发起JSAPI H5 支付都是同理 
+```
+    // 第二个参数为一个组合 `接入点/方法/版本/区域(可选参数)`
+    $options = tencent_request('POST','sms.tencentcloudapi.com/DescribePhoneNumberInfo/2021-01-11/ap-nanjing',[
+            'PhoneNumberSet'=>['+8617605509012']
+        ],'1253985496');
+    $request = onRequest(...$options); // 异步请求 
+    $request = httpProxy(...$options); // 代理请求
+```
+
 ### 示例：`请求微信证书`
 > 就是这么简单 发起JSAPI H5 支付都是同理 
 ```
