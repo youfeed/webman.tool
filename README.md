@@ -17,6 +17,9 @@
 
 > `composer require youloge/webman.tool`
 
+- 如果要使用 `onRequest` 请求封装 请安装`composer require workerman/http-client`
+- 如果要使用 `onQueue` 队列封装 请安装`composer require workerman/redis-queue`
+
 ### 使用说明
 - 到目录`config/youloge.php` 新建配置文件
 - 工具箱已经内置``[配置文件读取功能 .ini](https://www.workerman.net/plugin/153)
@@ -68,7 +71,9 @@ return $config;
 ### 示例代码 - 辅助辅助 函数还是要配合代码食用才香~
 
 ### 示例：`腾讯云短信SMS号码查询`
-> 就是这么简单 发起JSAPI H5 支付都是同理 
+
+> 简单粗暴 不需要安装各种`腾讯云各种SDK`配好密钥 直接开干
+
 ```
     // 第二个参数为一个组合 `接入点/方法/版本/区域(可选参数)`
     $options = tencent_request('POST','sms.tencentcloudapi.com/DescribePhoneNumberInfo/2021-01-11/ap-nanjing',[
@@ -79,7 +84,9 @@ return $config;
 ```
 
 ### 示例：`请求微信证书`
-> 就是这么简单 发起JSAPI H5 支付都是同理 
+
+> 就是这么简单 发起JSAPI H5 支付都是同理，比如JSAPI支付`统一下单之后`在调用一下签名组装一下`payment`参数即可支付
+
 ```
 $options = weixin_request('GET','/v3/certificates',[],'商户ID');
 @['data'=>$data] = $request = onRequest(...$options);
@@ -97,7 +104,9 @@ return $list;
 ```
 
 ### 示例：`上传JSON文件到七牛`
-> 上传`一个JSON片段文件`并指定保存文件名到`config/100.json` 
+
+> 上传`一个JSON片段文件`并指定保存文件名到`config/100.json`, 二进制数据没测试*
+
 ```
      $url = qiniu_sign([
         'scope'=>"buket:100.json",
@@ -117,7 +126,9 @@ return $list;
 ```
 
 ### 示例：`代理请求网网址`
+
 > 网站支持`github登录`服务器在国内，运营商会屏蔽你的访问，这时候可以使用代理请求，数据结构与`onRequest` 一样
+
 ```
     @['appid'=>$appid,'code'=>$code] = $request->all();
     @['secret'=>$secret] = config("youloge.$appid"); // 配置参数格式统一起来
