@@ -19,11 +19,12 @@
 
 ### 使用说明
 - 到目录`config/youloge.php` 新建配置文件
+- 工具箱已经内置``[配置文件读取功能 .ini](https://www.workerman.net/plugin/153)
 ``` php
 <?php
 $config = [
 	'weixin'=>[
-		'v3key'=>'',
+		'v3key'=>ini('WEIXIN.V3KEY',''),// 商户APIV3密钥,
 		'anthor'=>'https://%s%S'
 	],
 	// 支付宝 二类配置`public`和`gatway.xxx.xxx.xx`
@@ -51,8 +52,8 @@ $config = [
 	],
 	// 小程序配置
 	'12345678'=>[
-		'secert'=>'xxxxxx',
-		'xxx'=>'xxx'
+		'secert'=>ini('XCX.SECERT','12345678'),
+		'xxx'=>ini('XCX.xxx','12345678'),
 	]
 ];
 // 带格式的配置 - 例如
