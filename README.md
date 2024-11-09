@@ -10,7 +10,8 @@
 
 [Github Youloge.Tool](https://github.com/youfeed/webman.tool) Star我 `有帮助的话，记得给个star` 能提交点代码最好
 
-- 0.0.1 初始项目
+- 0.0.9 迁移多个辅助函数
+- 1.0.1 增加 构造腾讯云请求体
 
 ###  安装使用
 
