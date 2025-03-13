@@ -19,6 +19,47 @@ if(!function_exists('rand_base32')){
     }
 }
 /**
+ * HMAC-based One-Time Password
+ * 基于HMAC的一次性密码 RFC4226
+ * otpauth://hotp/{label}?secret={secret}&issuer={issuer}
+ */
+if(!function_exists('useTOTP')){
+  function useHOTP($secret,$step=30,$digits=6){
+    // 获取当前时间戳并除以$timeStep（例如30秒）来得到计数器值
+    $counter = floor(microtime(true) / $timeStep);
+
+    // 将计数器转换为二进制字符串
+    $time = pack('N*', 0) . pack('N*', $counter);
+
+    // 计算HMAC-SHA1
+    $hash = hash_hmac('sha1', $time, base64_decode($secret), true);
+
+    // 获取offset
+    $offset = ord(substr($hash, -1)) & 0xF;
+
+    // 取最后4字节的数据并转换为整数
+    $otp = (
+        ((ord($hash[$offset + 0]) & 0x7F) << 24 ) |
+        ((ord($hash[$offset + 1]) & 0xFF) << 16 ) |
+        ((ord($hash[$offset + 2]) & 0xFF) << 8 ) |
+        (ord($hash[$offset + 3]) & 0xFF)
+    );
+
+    // 我们只想要6位数字的OTP，所以取模10^6
+    return str_pad($otp % 1000000, 6, '0', STR_PAD_LEFT);
+  }
+}
+/**
+ * Time-Based One-Time Password
+ * 基于时间的一次性密码 RFC6238
+ * otpauth://totp/{label}?secret={secret}&issuer={issuer}
+ */
+if(!function_exists('useTOTP')){
+  function useTOTP(){
+
+  }
+}
+/**
 * Mysql实例 
 * 推荐使用 模型
 * [laravel数据库](https://github.com/illuminate/database)
