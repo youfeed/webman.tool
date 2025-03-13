@@ -544,7 +544,132 @@ if(!function_exists('alipay_verify')){
       }
     }
   }
-
+/**
+ * Validator 验证器
+ * @param array $data 待验证数据
+ * @param array $rules 验证规则
+ * @param array $messages 错误提示
+ * @return array 验证结果
+ * 验证规则
+ * - | 分割多个规则
+ * - : 规则参数 ,多个参数用逗号分隔
+ * - # 自定义错误提示
+ * $rules = [
+ * 'name'=>'required|strTrim|strLength:1,10|strAlphaNum:true',
+ * 'age'=>'betweenNumber:1,100']
+ */
+// if(!function_exists('useValidator')){
+//     function useValidator($request, $rules,$messages = []){
+//         $params = $request->all();
+//         $preset = [
+//             'required' => [
+//                 'function'=>function($item){
+//                     return !empty($item);
+//                 },
+//                 'msg'=>'字段必填,可设置一个默认值'
+//             ],
+//             'ifExisted' => [
+//                 'function'=>function($item,$params){
+//                     return !empty($params[$item]);
+//                 },
+//                 'msg'=>'字段已存在',
+//             ],
+//             //字符串相关
+//             'strTrim' => [
+//                 function($item){
+//                     return trim($item);
+//                 }
+//             ],
+//             'strLength' => [
+//                 'function'=>function($item,$params){
+//                     @[$min,$max] = explode(',',$params);
+//                     return mb_strlen($item) >= $min && mb_strlen($item) <= $max;
+//                 },
+//                 'msg'=>'字段的长度必须等于%s位'
+//             ],
+//             'strStartWith' => [
+//                 'func'=>function($item,$params){
+//                     return str_starts_with($item, $params);
+//                 },
+//                 'msg'=>'字段的值必须以指定的%s字符串开始',
+//             ],
+//             'strEndWith' => [
+//                 'func'=>function($item,$params){
+//                     return str_ends_with($item, $params);
+//                 },
+//                 'msg'=>'字段的值必须以指定的%s字符串结束',
+//             ],
+//             'strDigit' => [
+//                 'fun'=>function($item){
+//                     return ctype_digit($item);
+//                 },
+//                 'msg'=>'字段的值只能由数字组成'
+//             ],
+//             'strAlpha' => [
+//                 'fun'=>function($item){
+//                     return ctype_alpha($item);
+//                 },
+//                 'msg'=>'字段的值只能由字母组成'
+//             ],
+//             'strUpper' => [
+//                 'fun'=>function($item){
+//                     return ctype_upper($item);
+//                 },
+//                 'msg'=>'字段的值只能由大写字母组成'
+//             ],
+//             'strLower' => [
+//                 'fun'=>function($item){
+//                     return ctype_lower($item);
+//                 },
+//                 'msg'=>'字段的值只能由小写字母组成'
+//             ],
+//             'strAlphaNum' => [
+//                 'fun'=>function($item,$params){
+//                     return ctype_alnum($item);
+//                 },
+//                 'msg'=>'字段的值只能由字母和数字组成'
+//             ],
+//             //数字相关
+//             'betweenNumber' => '字段的值必须在某个区间',
+//             'cmpNumber' => '对字段进行比较,是betweenNumber方法的补充,允许的符号:>,<,>=,<=,!=,=',
+//             'isNumber' => '字段的值必须是数字(int or float)',
+//             'isInt' => '字段的值必须是整数',
+//             'isFloat' => '字段的值必须是小数,传入参数控制小数位数',
+//             //数组相关
+//             'inArray' => '字段的值必须在数组中',
+//             'notInArray' => '字段的值必须不在数组中',
+//             'isArray' => '字段的值必须是数组',
+//             //常用
+//             'isEmail' => '字段的值必须是邮箱',
+//             'isMobile' => '字段的值必须是手机号',
+//             'isDateTimeInFormat' => '字段的值必须是指定格式的时间字符串(Ymd-His等)',
+//             'isIdCard' => '字段的值必须是身份证号',
+//             'isUrl' => '字段的值必须是网址',
+//             'isIp' => '字段的值必须是IP地址(ipv4 or ipv6)',
+//             //其他
+//             'isBool' => '字段的值必须是布尔值,为 "1", "true", "on" and "yes" 返回 TRUE,为 "0", "false", "off" and "no" 返回 FALSE',
+//             'isJson' => '字段的值必须是一个json字符串,允许传入参数将其转为Array',
+//             'withRegex' => '使用正则表达式验证字段',
+//         ];
+//         // continue 与 break。
+//         $validator = [];
+//         foreach($rules as $key=>$val){
+//             @[$r,$m] = explode('#',$val);
+//             $allows = explode('|',$r);
+//             foreach($allows as $allow){
+//                 @[$key,$value] = $parameter = explode(':',$allow);
+//                 $values = explode(',',$value);
+//                 @['err'=>$err,'msg'=>$msg,'data'=>$data] = $preset[$key](...$values);
+//                 if($err !== 200){
+//                     $validator[$key] = $msg;
+//                     continue; 
+//                 }
+//                 $params[$key] = $filter;
+//             }
+//         }
+//         return ['err'=>400,'msg'=>'参数错误'];
+//     }
+// }
 /**
  * 读取配置文件参数
  * `ini(null)`返回全部配置 
