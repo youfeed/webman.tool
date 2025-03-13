@@ -73,6 +73,7 @@ return $config;
 ### 示例代码 - 辅助辅助 函数还是要配合代码食用才香~
 
 ### 示例：`腾讯云短信SMS号码查询`
+
 > 标准TOTP令牌 RFC6238
 ```php
 $secret = secret_base32(16); // 生成一个16位Base32随机字符串
