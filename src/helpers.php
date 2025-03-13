@@ -9,54 +9,89 @@
 use support\Db;
 /**
 * 生成指定长度 - 用于验证码
-* 使用Base32字符集
+*
+* 使用Base32字符集：ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+*
 * @param int $len 长度
+*
+* @return string 不重复的验证码
 */
 if(!function_exists('rand_base32')){
     function rand_base32($len=4)
-    {
-      return substr(str_shuffle("23456789ABCDEFGHJKLMNPQRSTUVWXYZ"),0,$len);
+    { 
+      return substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"),0,$len);
     }
 }
 /**
- * HMAC-based One-Time Password
- * 基于HMAC的一次性密码 RFC4226
- * otpauth://hotp/{label}?secret={secret}&issuer={issuer}
+ * 生成指定长度 - 用于密钥
+ * 
+ * 自行拼装 otpauth://totp/{label}?secret={secret}&issuer={issuer}
+ * 
+ * @param int|16 $len=16 可选：长度默认16
+ * @param string|'' $prefix='' 可选：密钥前缀
+ * 
+ * @return string 返回密钥
  */
-if(!function_exists('useTOTP')){
-  function useHOTP($secret,$step=30,$digits=6){
-    // 获取当前时间戳并除以$timeStep（例如30秒）来得到计数器值
-    $counter = floor(microtime(true) / $timeStep);
-
-    // 将计数器转换为二进制字符串
-    $time = pack('N*', 0) . pack('N*', $counter);
-
-    // 计算HMAC-SHA1
-    $hash = hash_hmac('sha1', $time, base64_decode($secret), true);
-
-    // 获取offset
-    $offset = ord(substr($hash, -1)) & 0xF;
-
-    // 取最后4字节的数据并转换为整数
-    $otp = (
-        ((ord($hash[$offset + 0]) & 0x7F) << 24 ) |
-        ((ord($hash[$offset + 1]) & 0xFF) << 16 ) |
-        ((ord($hash[$offset + 2]) & 0xFF) << 8 ) |
-        (ord($hash[$offset + 3]) & 0xFF)
-    );
-
-    // 我们只想要6位数字的OTP，所以取模10^6
-    return str_pad($otp % 1000000, 6, '0', STR_PAD_LEFT);
-  }
+if(!function_exists('secret_base32')){
+    function secret_base32($len=16,$prefix = ''){
+        $char = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32字符集
+        for ($i = 0; $i < $len; $i++) {
+            $prefix .= $char[rand(0, strlen($char) - 1)];
+        }
+        return $prefix;
+    }
 }
 /**
- * Time-Based One-Time Password
  * 基于时间的一次性密码 RFC6238
- * otpauth://totp/{label}?secret={secret}&issuer={issuer}
+ *
+ * Time-Based One-Time Password 
+ * 
+ * @param string $secret Base32编码的密钥
+ * @param number|null $time 可选：时间戳。默认为null，表示当前时间。
+ *
+ * @return array 返回三组验证码
+ *
+ * @throws \Exception 无。
+ *
+ * 示例：
+ * ```
+ * // 将数据加入名为 'email_tasks' 的队列，无延迟
+ * useTOTP('GQBWBS7AAEBECCUJ',1741877199);
+ * [893277,448721,854850]
+ * ```
  */
 if(!function_exists('useTOTP')){
-  function useTOTP(){
-
+  function useTOTP($secret,$time=null){
+    $secret = str_replace('=', '', strtoupper($secret));
+    $time = floor(($time ?? time()) / 30);
+    $char = array_flip(str_split('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')); // Base32字符集
+    $length = strlen($secret);$buffer = 0;$bits = 0;$key = '';
+    for ($i = 0; $i < $length; $i++) {
+        $buffer <<= 5;
+        $buffer |= $char[$secret[$i]];
+        $bits += 5;
+        // 当累积的位数达到或超过8位时，处理这些位
+        while ($bits >= 8) {
+            $byte = ($buffer & (0xFF << ($bits - 8))) >> ($bits - 8);
+            $key .= chr($byte);
+            $bits -= 8;
+        }
+    }
+    //
+    $pool = [$time-1,$time,$time+1];
+    foreach($pool as &$item){
+        $item = pack('N*', 0) . pack('N*', $item);
+        $hmac = hash_hmac('sha1', $item, $key, true);
+        $offset = ord(substr($hmac, -1)) & 0xF;
+        $code = ( 
+            ((ord($hmac[$offset]) & 0x7F) << 24) | 
+            ((ord($hmac[$offset + 1]) & 0xFF) << 16) | 
+            ((ord($hmac[$offset + 2]) & 0xFF) << 8) | 
+            (ord($hmac[$offset + 3]) & 0xFF) 
+        ) % pow(10, 6);
+        $item = str_pad($code, 6, '0', STR_PAD_LEFT);
+    }
+    return $pool;
   }
 }
 /**
@@ -105,7 +140,7 @@ if(!function_exists('runRedis')){
 * [webman-queue] 队列封装
 * @param string $queue 队列名称
 * @param array $data 数据
-* @param int $delay 可选：延迟时间
+* @param int|null $delay 可选：延迟时间
 */
 if(!function_exists('onQueue')){
     function onQueue($queue,$data,$delay=0)

@@ -1,4 +1,4 @@
-# Youloge.tool Webman 辅助函数百宝箱
+# Youloge.tool Webman 辅助函数工具箱
 
 > 使用前看一下下面辅助函数：尤其注意`函数名称问题`
 
@@ -13,6 +13,7 @@
 
 - 0.0.9 迁移多个辅助函数
 - 1.0.1 增加 构造腾讯云请求体
+- 1.2.2 [2025-03-13]新增谷歌令牌辅助函数 `secret_base32` => `useTOTP`
 
 ###  安装使用
 
@@ -41,10 +42,10 @@ $config = [
 		]
 		// 方法参数
 		'alipay.system.oauth.token'=>['grant_type'=>'','code'=>""],
-    	'alipay.trade.create'=>['biz_content'=>'','notify_url'=>'',],
-    	'alipay.trade.precreate'=>['biz_content'=>'','notify_url'=>'',],
-    	'alipay.trade.page.pay'=>['notify_url'=>'','biz_content'=>''],
-    	'alipay.trade.wap.pay'=>['notify_url'=>'','biz_content'=>''],
+          'alipay.trade.create'=>['biz_content'=>'','notify_url'=>'',],
+          'alipay.trade.precreate'=>['biz_content'=>'','notify_url'=>'',],
+          'alipay.trade.page.pay'=>['notify_url'=>'','biz_content'=>''],
+          'alipay.trade.wap.pay'=>['notify_url'=>'','biz_content'=>''],
 	],
 	// 数组每次代理 随机选择一个
 	'proxy'=>[
@@ -72,10 +73,17 @@ return $config;
 ### 示例代码 - 辅助辅助 函数还是要配合代码食用才香~
 
 ### 示例：`腾讯云短信SMS号码查询`
+> 标准TOTP令牌 RFC6238
+```php
+$secret = secret_base32(16); // 生成一个16位Base32随机字符串
+$array = useTOTP('GQBWBS7AAEBECCUJ',1741877199);
+// 返回时间戳 前中后 三组验证码
+[893277,448721,854850]
+```
 
 > 简单粗暴 不需要安装各种`腾讯云各种SDK`配好密钥 直接开干
 
-```
+```php
     // 第二个参数为一个组合 `接入点/方法/版本/区域(可选参数)`
     $options = tencent_request('POST','sms.tencentcloudapi.com/DescribePhoneNumberInfo/2021-01-11/ap-nanjing',[
             'PhoneNumberSet'=>['+8617605509012']
@@ -88,7 +96,7 @@ return $config;
 
 > 就是这么简单 发起JSAPI H5 支付都是同理，比如JSAPI支付`统一下单之后`在调用一下签名组装一下`payment`参数即可支付
 
-```
+```php
 $options = weixin_request('GET','/v3/certificates',[],'商户ID');
 @['data'=>$data] = $request = onRequest(...$options);
 // 返回一个V3加密后的数组
@@ -108,7 +116,7 @@ return $list;
 
 > 上传`一个JSON片段文件`并指定保存文件名到`config/100.json`, 二进制数据没测试*
 
-```
+```php
      $url = qiniu_sign([
         'scope'=>"buket:100.json",
         'deadline'=>time()+300,
@@ -130,7 +138,7 @@ return $list;
 
 > 网站支持`github登录`服务器在国内，运营商会屏蔽你的访问，这时候可以使用代理请求，数据结构与`onRequest` 一样
 
-```
+```php
     @['appid'=>$appid,'code'=>$code] = $request->all();
     @['secret'=>$secret] = config("youloge.$appid"); // 配置参数格式统一起来
     // 换取`access_token`
@@ -153,17 +161,32 @@ return $list;
 
 ---
 
-代码工具箱
+## 代码工具箱
 
 ---
 
-### 生成指定长度 - 用于验证码
+### 安全的base64编码
+
+```php
+safe_base64_encode($data);
+safe_base64_decode($data);
+```
+
+### 生成不重复字符 - 用于验证码
+
+* 使用Base32字符集 ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+* @param int $len=4 长度
+
+```php
+rand_base32($len=4)
+```
+### 生成重复的字符 - 用于密钥密码
 
 * 使用Base32字符集
-* @param int $len 长度
-
-```
-rand_base32($len=4)
+* @param int $len=16 长度
+* @param string $prefix='' 前缀
+```php
+secret_base32($len=16,$prefix='')
 ```
 
 ### Mysql实例
@@ -172,7 +195,7 @@ rand_base32($len=4)
 * [laravel数据库](https://github.com/illuminate/database)
 * @param string $table 表名
 
-```
+```php
 onMysql($table)
 ```
 
@@ -180,7 +203,7 @@ onMysql($table)
 
 * 返回句柄
 
-```
+```php
 onRedis()
 ```
 
@@ -189,7 +212,7 @@ onRedis()
 * runRedis('HGET',["wallet",$uuid])
 * runRedis('HINCRBY',["wallet",$uuid,10])
 
-```
+```php
 runRedis($method,$params)
 ```
 
@@ -199,7 +222,7 @@ runRedis($method,$params)
 * @param array $data 数据
 * @param int $delay 可选：延迟时间
 
-```
+```php
      onQueue($queue,$data,$delay=0)
 ```
 
@@ -211,7 +234,7 @@ runRedis($method,$params)
 * 请求返回 返回 [JOSN] 非对象返回 [raw=响应内容]
 * 错误返回 ['err'=>500,'msg'=>'错误信息']
 
-```
+```php
      onRequest($url,$options=[])
 ```
 
@@ -227,7 +250,7 @@ runRedis($method,$params)
 * @param string $url 请求网址
 * @param array $options 请求配置
 
-```
+```php
      httpProxy($url,$options=[])
 ```
 
@@ -240,7 +263,7 @@ runRedis($method,$params)
  * @param array $header 其他表单请求头
  * @return array 上传结果
 
-```
+```php
      virtualFile($url,$files,$body=[],$header=[])
 ```
 
@@ -252,13 +275,6 @@ runRedis($method,$params)
 
 ---
 
-### 安全的base64编码
-
-```
-safe_base64_encode($data);
-safe_base64_decode($data);
-```
-
 ### 构造腾讯云请求体 - 配置路径(一律小写)：[youloge.{appid}.secretid|secretkey]
 
 * 签名方法：TC3-HMAC-SHA256
@@ -267,7 +283,7 @@ safe_base64_decode($data);
 * @param array $payload  请求载体 无参数时 设为[],null,false,0 即可
 * @param string $appid  选择那个appid下得的证书
 
-```
+```php
    tencent_request($method,$endpoint_action_version_region,$payload,$appid)
    $method = POST
    // 接入点/方法/版本/区域(可选参数)
@@ -284,7 +300,7 @@ safe_base64_decode($data);
 
 * @param string $string 待签名字符串
 
-```
+```php
      qiniu_hmac($string)
 ```
 
@@ -292,7 +308,7 @@ safe_base64_decode($data);
 
 * @param array $params 待签名数组对象
 
-```
+```php
      qiniu_sign($params)
 ```
 
@@ -300,7 +316,7 @@ safe_base64_decode($data);
 
 * @param array $params 待签名数组对象
 
-```
+```php
      qiniu_auth($params)
 ```
 
@@ -310,7 +326,7 @@ safe_base64_decode($data);
 * @param number $second 可选：设置有效时间 默认3600秒
 * @param string $attname 可选：设置下载文件名 默认没有
 
-```
+```php
      qiniu_download($url,$second=3600,$attname='')
 ```
 
@@ -331,7 +347,7 @@ safe_base64_decode($data);
 * @param string $appid 选择那个id下得的证书
 * 返回数组 成功 [err=>200,data=>base64] 失败 [err=>500,msg=>'签名错误']
 
-```
+```php
      private_sign($string,$appid)
 ```
 
@@ -344,7 +360,7 @@ safe_base64_decode($data);
 * @param array $data JSON数据 不传设置为 '' false 0 即可
 * @param string $appid 选择那个商户id下得的证书
 
-```
+```php
      weixin_request($method,$router,$data='',$appid='')
 ```
 
@@ -354,7 +370,7 @@ safe_base64_decode($data);
 * 成功返回 对象返回JSON 否则返回 []
 * 失败返回 ['err'=>500,'msg'=>Exception]
 
-```
+```php
      weixin_verify($request)
 ```
 
@@ -365,7 +381,7 @@ safe_base64_decode($data);
 * 成功返回 对象返回JSON 否则返回 ['raw'=>$raw]
 * 失败返回 ['err'=>500,'msg'=>Exception]
 
-```
+```php
      weixin_decrypt($encrypt,$appid)
 ```
 
@@ -376,7 +392,7 @@ safe_base64_decode($data);
 * @param array $data  待合并参数
 * @param string $appid  选择那个商户id下得的证书
 
-```
+```php
      alipay_request($method,$data,$appid)
 ```
 
@@ -386,7 +402,7 @@ safe_base64_decode($data);
 * 成功返回 对象返回JSON 否则返回 []
 * 失败返回 ['err'=>500,'msg'=>Exception]
 
-```
+```php
      alipay_verify($request)
 ```
 
@@ -396,7 +412,7 @@ safe_base64_decode($data);
 * `ini('MYSQL','默认值')` 返回一级配置[数组]
 * `ini('MYSQL.HOST')` 返回三级配置[字符串]
 
-```
+```php
 ini($keys, $def='')
 ```
 

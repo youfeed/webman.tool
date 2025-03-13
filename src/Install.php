@@ -1,5 +1,5 @@
 <?php
-namespace Youloge\Webman.tool;
+namespace Youloge\Webman\tool;
 
 class Install
 {
