@@ -558,16 +558,16 @@ if(!function_exists('alipay_verify')){
  * 'name'=>'required|strTrim|strLength:1,10|strAlphaNum:true',
  * 'age'=>'betweenNumber:1,100']
  */
-// if(!function_exists('useValidator')){
-//     function useValidator($request, $rules,$messages = []){
-//         $params = $request->all();
-//         $preset = [
-//             'required' => [
-//                 'function'=>function($item){
-//                     return !empty($item);
-//                 },
-//                 'msg'=>'字段必填,可设置一个默认值'
-//             ],
+if(!function_exists('useValidator')){
+    function useValidator($request, $rules,$messages = []){
+        $params = $request->all();
+        $preset = [
+            'required' => [
+                'function'=>function($item){
+                    return empty($item) ? false : $item;
+                },
+                'msg'=>'字段必填,可设置一个默认值'
+            ],
 //             'ifExisted' => [
 //                 'function'=>function($item,$params){
 //                     return !empty($params[$item]);
@@ -575,48 +575,47 @@ if(!function_exists('alipay_verify')){
 //                 'msg'=>'字段已存在',
 //             ],
 //             //字符串相关
-//             'strTrim' => [
-//                 function($item){
-//                     return trim($item);
-//                 }
-//             ],
-//             'strLength' => [
-//                 'function'=>function($item,$params){
-//                     @[$min,$max] = explode(',',$params);
-//                     return mb_strlen($item) >= $min && mb_strlen($item) <= $max;
-//                 },
-//                 'msg'=>'字段的长度必须等于%s位'
-//             ],
-//             'strStartWith' => [
-//                 'func'=>function($item,$params){
-//                     return str_starts_with($item, $params);
-//                 },
-//                 'msg'=>'字段的值必须以指定的%s字符串开始',
-//             ],
-//             'strEndWith' => [
-//                 'func'=>function($item,$params){
-//                     return str_ends_with($item, $params);
-//                 },
-//                 'msg'=>'字段的值必须以指定的%s字符串结束',
-//             ],
-//             'strDigit' => [
-//                 'fun'=>function($item){
-//                     return ctype_digit($item);
-//                 },
-//                 'msg'=>'字段的值只能由数字组成'
-//             ],
-//             'strAlpha' => [
-//                 'fun'=>function($item){
-//                     return ctype_alpha($item);
-//                 },
-//                 'msg'=>'字段的值只能由字母组成'
-//             ],
-//             'strUpper' => [
-//                 'fun'=>function($item){
-//                     return ctype_upper($item);
-//                 },
-//                 'msg'=>'字段的值只能由大写字母组成'
-//             ],
+            'strTrim' => [
+                function($item){
+                    return trim($item);
+                }
+            ],
+            'strLength' => [
+                'function'=>function($item, $min, $max){
+                    return (mb_strlen($item) >= $min && mb_strlen($item) <= $max) ? $item : false;
+                },
+                'msg'=>'长度必须在%s到%s之间'
+            ],
+            'strStartWith' => [
+                'func'=>function($item,$prefix){
+                    return str_starts_with($item, $prefix) ? $item : false;
+                },
+                'msg'=>'必须以指定的%s字符串开始',
+            ],
+            'strEndWith' => [
+                'func'=>function($item,$suffix){
+                    return str_ends_with($item, $suffix) ? $item : false;
+                },
+                'msg'=>'字段的值必须以指定的%s字符串结束',
+            ],
+            'strDigit' => [
+                'fun'=>function($item){
+                    return ctype_digit($item) ? $item : false;
+                },
+                'msg'=>'字段的值只能由数字组成'
+            ],
+            'strAlpha' => [
+                'fun'=>function($item){
+                    return ctype_alpha($item) ? $item : false;
+                },
+                'msg'=>'字段的值只能由字母组成'
+            ],
+            'strUpper' => [
+                'fun'=>function($item){
+                    return ctype_upper($item) ? $item : false;
+                },
+                'msg'=>'字段的值只能由大写字母组成'
+            ],
 //             'strLower' => [
 //                 'fun'=>function($item){
 //                     return ctype_lower($item);
@@ -650,7 +649,7 @@ if(!function_exists('alipay_verify')){
 //             'isBool' => '字段的值必须是布尔值,为 "1", "true", "on" and "yes" 返回 TRUE,为 "0", "false", "off" and "no" 返回 FALSE',
 //             'isJson' => '字段的值必须是一个json字符串,允许传入参数将其转为Array',
 //             'withRegex' => '使用正则表达式验证字段',
-//         ];
+        ];
 //         // continue 与 break。
 //         $validator = [];
 //         foreach($rules as $key=>$val){
@@ -666,10 +665,37 @@ if(!function_exists('alipay_verify')){
 //                 }
 //                 $params[$key] = $filter;
 //             }
-//         }
+        // }
 //         return ['err'=>400,'msg'=>'参数错误'];
-//     }
-// }
+        // $errors = ['err'=>200,'msg'=>'参数正确','data'=>[]];
+        // foreach ($rules as $field => $ruleStr) {
+        //     @[$rule, $customMsg] = explode('#', $ruleStr);
+        //     $rulesArray = explode('|', $rule);
+
+        //     foreach ($rulesArray as $singleRule) {
+        //         @[$ruleName, $params] = explode(':', $singleRule);
+        //         $params = $params ? explode(',', $params) : [];
+
+        //         if (isset($preset[$ruleName])) {
+        //             $func = $preset[$ruleName]['function'];
+        //             $result = $func($params ? ($params[0] === '' ? null : ($params[0][0] === '$' ? $params[0] : $params[0]) ) : $params[0], ...array_slice($params, 1));
+
+        //             if ($result === false || (is_string($result) && empty($result))) {
+        //                 $errorMsg = isset($messages[$field . '.' . $ruleName]) ? $messages[$field . '.' . $ruleName] : sprintf($preset[$ruleName]['msg'], ...$params);
+        //                 $errors['msg'] = $customMsg ?: $errorMsg;
+        //                 break;
+        //             } elseif (is_string($result)) {
+        //                 // 如果验证器返回一个字符串，则认为是过滤后的结果
+        //                 $params[0] = $result;
+        //             }
+        //         } else {
+        //             $errors['msg'] = "未定义的验证规则: $ruleName";
+        //         }
+        //     }
+        // }
+        // return $errors;
+    }
+}
 /**
  * 读取配置文件参数
  * `ini(null)`返回全部配置 
