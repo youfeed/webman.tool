@@ -73,6 +73,30 @@ return $config;
 
 ## 示例代码 - 辅助辅助 函数还是要配合代码食用才香~
 
+### 示例：`表单输入验证器`
+
+ * 验证规则
+ * - | 分割多个规则
+ * - : 规则参数 ,多个参数用逗号分隔
+ * - # 自定义错误提示
+ * $rules = [
+ * 'name'=>'required|trim|length:1,10|alphaNum:true',
+ * 'age'=>'betweenNumber:1,100'
+ * ];
+ * 基本处理 数据预处理
+ * required int bool float trim upper lower
+ * 常用验证
+ * email mobile url ip date time idcard regex test
+ * 数字相关
+ * min max between
+ * 字符串相关
+ * start end digit alpha alphanum length
+ * 取值相关
+ * in not
+ 
+```php
+ $array = useValidator($data,$rules);
+ ```
 
 ### 示例：`标准动态令牌`
 
