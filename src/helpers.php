@@ -543,239 +543,6 @@ if(!function_exists('alipay_verify')){
         return ['err'=>500,'msg'=>$e->getMessage()];
       }
     }
-  }
-/**
- * Validator 验证器
- * @param array $data 待验证数据
- * @param array $rules 验证规则
- * @param bool $intersect=true 可选：默认返回交集
- * 
- * @return array 验证结果
- * 
- * 验证规则
- * - | 分割多个规则
- * - : 规则参数 ,多个参数用逗号分隔
- * - # 自定义错误提示
- * $rules = [
- * 'name'=>'required|trim|length:1,10|alphaNum:true',
- * 'age'=>'betweenNumber:1,100']
- * 基本处理 数据预处理
- * required int bool float trim upper lower
- * 常用验证
- * email mobile url ip date time idcard regex test
- * 数字相关
- * min max between
- * 字符串相关
- * start end digit alpha alphanum length
- * 取值相关
- * in not
- */
-if(!function_exists('useValidator')){
-  function useValidator($params, $rules,$intersect = true){
-        $presets = [
-            // 基本处理
-            'required' => function($field,$param,$args,$msg='@%s 字段不能为空'){
-                if(empty($param)){
-                    throw new Exception(sprintf($msg,$field));
-                }
-                return $param;
-            },
-            'int'=>function($field,$param,$args,$msg=''){
-                return (int)($param)??$args;
-            },
-            'bool'=>function($field,$param,$args,$msg=''){
-                return (bool)($param)??$args;
-            },
-            'float'=>function($field,$param,$args,$msg=''){
-                return (float)($param)??$args;
-            },
-            'trim' => function($field,$param,$args,$msg=''){
-                return trim($param)??$args;
-            },
-            'upper'=>function($field,$param,$args,$msg=''){
-                return strtoupper($param)??$args;
-            },
-            'lower'=>function($field,$param,$args,$msg=''){
-                return strtolower($param)??$args;
-            },
-            // 常用验证
-            'email' => function($field,$param,$args,$msg='@%s 字段值必须是邮箱'){
-                return filter_var($param, FILTER_VALIDATE_EMAIL) ? $param : throw new Exception(sprintf($msg,$field));
-            },
-            'mobile' => function($field,$param,$args,$msg='@%s 字段值必须是手机号'){
-                return filter_var($param, FILTER_VALIDATE_REGEXP, array("options"=>array("regexp"=>"/^1[3456789]\d{9}$/"))) ? $param : throw new Exception(sprintf($msg,$field));
-            },
-            'url'=>function($field,$param,$args,$msg='@%s 字段值必须是网址'){
-                return filter_var($param, FILTER_VALIDATE_URL) ? $param : throw new Exception(sprintf($msg,$field));
-            },
-            'ip'=>function($field,$param,$args,$msg='@%s 字段值必须是IP地址'){
-                return filter_var($param, FILTER_VALIDATE_IP) ? $param : throw new Exception(sprintf($msg,$field));
-            },
-            'date'=>function($field,$param,$args,$msg='@%s 字段值必须是%s日期格式'){
-                $format = $args ?? 'Y-m-d H:i:s';$dateTime = DateTime::createFromFormat($format, $param);
-                if($dateTime &&  !$dateTime->getLastErrors()['warning_count']){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field));
-            },
-            'time'=>function($field,$param,$args,$msg='@%s 字段值必须是时间戳'){
-                if (!is_numeric($param) || intval($param) != $param) {
-                    return throw new Exception(sprintf($msg,$field));
-                }
-                $minTimestamp = strtotime('1970-01-01'); // 0
-                $maxTimestamp = strtotime('2099-01-01'); // 4070908800000 32位是2038-01-19
-                if($param <= $minTimestamp || $param >= $maxTimestamp){
-                    return throw new Exception(sprintf($msg,$field));
-                }
-                return $param;
-            },
-            'idcard'=>function($field,$param,$args,$msg='@%s 字段值必须是身份证号 %s'){
-                if(strlen($param)!==18){
-                    return throw new Exception(sprintf($msg,$field,'长度不足'));
-                }
-                if(preg_match('/^\d{17}[\dXx]$/', $param) == false){
-                    return throw new Exception(sprintf($msg,$field,'格式错误'));
-                }
-                // 加权因子
-                $weightFactors = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
-                // 校验码映射
-                $checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
-                // 计算校验码
-                $sum = 0;
-                for ($i = 0; $i < 17; $i++) {
-                    $sum += intval($param[$i]) * $weightFactors[$i];
-                }
-                $mod = $sum % 11;
-                $checkCode = $checkCodes[$mod];
-                if(strtoupper($param[17]) !== $checkCode){
-                    return throw new Exception(sprintf($msg,$field,'校验错误'));
-                }
-                return $param;
-            },
-            'regex'=>function($field,$param,$args,$msg='@%s 字段值格式错误'){
-                if(preg_match($args, $param) === false){
-                    return throw new Exception(sprintf($msg,$field));
-                }
-                return $param;
-            },
-            'test'=>function($field,$param,$args,$msg='@%s 字段值格式错误'){
-                if(preg_match($args, $param) === false){
-                    return throw new Exception(sprintf($msg,$field));
-                }
-                return $param;
-            },
-            // 数字相关
-            'min'=>function($field,$param,$args,$msg='@%s 字段数字不能小与%s'){
-                $min = min(explode(',',$args));
-                if(is_numeric($param) && $param >= $min){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$min));
-                
-            },
-            'max'=>function($field,$param,$args,$msg='@%s 字段数字不能大于%s'){
-                $max = max(explode(',',$args));
-                if(is_numeric($param) && ($param <= $max)){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$max));
-            },
-            'between' => function($field,$param,$args,$msg='@%s 字段数字必须在%s和%s之间'){
-                $conf = explode(',',$args);$min = min($conf);$max = max($conf);
-                if(is_numeric($param) && $param >= $min && $param <= $max){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$min,$max));
-            },
-            // 字符串相关
-            'start' => function($field,$param,$args,$msg='@%s 字段值必须以%s开头'){
-                if(str_starts_with($param, $args)){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$args));
-            },
-            'end' => function($field,$param,$args,$msg='@%s 字段值必须以%s结尾'){
-                if(str_ends_with($param, $args)){
-                    return $param; 
-                }
-                return throw new Exception(sprintf($msg,$field,$args));
-            },
-            'digit' => function($field,$param,$args,$msg='@%s 字段值必须是数字'){
-                if(ctype_digit($param)){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field));
-            },
-            'alpha'=>function($field,$param,$args,$msg='@%s 字段值必须是字母'){
-                if(ctype_alpha($param)){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field));
-            },
-            'alphanum'=>function($field,$param,$args,$msg='@%s 字段值必须是字母和数字'){
-                if(ctype_alnum($param)){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field));
-            },
-            'length'=>function($field,$param,$args,$msg='@%s 字段长度必须%s~%s个字符'){
-                $conf = explode(',',$args);$min = min($conf);$max = max($conf);$len = mb_strlen($param);
-                if($len >= $min && $len <= $max){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$min,$max));
-            },
-            // 取值相关
-            'in' => function($field,$param,$args,$msg='@%s 字段值必须在%s范围中'){
-                $conf = explode(',',$args);
-                if(in_array($param,$conf)){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$args));
-            },
-            'not' => function($field,$param,$args,$msg='@%s 字段值不能在%s范围中'){
-                $conf = explode(',',$args);
-                if(in_array($param,$conf) == false){
-                    return $param;
-                }
-                return throw new Exception(sprintf($msg,$field,$args));
-            },
-        ];
-        // continue 与 break
-        try {
-            foreach ($rules as $field => $expression) {
-                @[$field=>$param] = $params;
-                // array_is_list
-                if(is_iterable($expression)){
-                    if(array_is_list($expression)){
-                        foreach ($params[$field] as &$paraming) {
-                            $paraming = useValidator($paraming,$expression[0],$intersect);
-                        }
-                    }else{
-                        foreach ($expression as &$expressions) {
-                            $params[$field] = useValidator($param,[$field=>$expressions],$intersect);
-                        }
-                    }
-                    continue;
-                }
-                // $params[$field] = is_iterable($expression); 
-                @[$rule, $customMsg] = explode('#', $expression);
-                @[$field=>$param] = $params;
-                $allows = explode('|', $rule);
-                foreach ($allows as $singleRule) {
-                    // 处理遍历
-                    @[$ruleName, $ruleParam] = explode(':', $singleRule,2);
-                    @[$ruleName=>$call] = $presets;if($call === null){ continue; }
-                    $args = [$field,$param,$ruleParam];$customMsg && array_push($args,$customMsg);
-                    $params[$field] = $call(...$args);
-                }
-            }
-            // 是否返回交集
-            return $intersect ? array_intersect_key($params) : $params;
-        } catch (\Exception $e) {
-            return ['err'=>400,'msg'=>$e->getMessage()];
-        }
-    }
 }
 /**
  * 读取配置文件参数
@@ -787,7 +554,8 @@ if(!function_exists('ini')){
     function ini($keys, $def=''){
       static $config = [];
       if (!$config) {
-        $config = @parse_ini_file(base_path().'/.env',true) ?? [];
+        $path = Phar::running() ? dirname(Phar::running(false)) : base_path();
+        $config = @parse_ini_file($path.'/.env',true) ?? [];
       }
       if($keys === null){
         return $config;
@@ -796,4 +564,249 @@ if(!function_exists('ini')){
       @[$one=>$item] = $config;
       return $two === null ? $item ?? $def : $item[$two] ?? $def;
     }
+}
+
+/**
+* 验证和处理表单数据
+*
+* 可以通过多个调用方式 实现复杂处理
+*
+* @param object $params 表单数据
+* @return object $rules 验证规则
+* @return bool $intersect 是否只返回验证通过的数据
+* @return array $result 验证结果
+* @throws Exception 验证失败抛出异常 ['err'=>400,'msg'=>'错误提示']
+* @example
+*/
+
+if(!function_exists('useValidator')){
+    function useValidator($params, $rules,$intersect = true){
+          $presets = [
+              // 基本处理
+              'required' => function($field,$param,$args,$msg='%s 字段不能为空'){
+                  if(empty($param)){
+                      throw new Exception(sprintf($msg,$field));
+                  }
+                  return $param;
+              },
+              'int'=>function($field,$param,$args,$msg=''){
+                  return (int)($param)??$args;
+              },
+              'bool'=>function($field,$param,$args,$msg=''){
+                  return (bool)($param)??$args;
+              },
+              'float'=>function($field,$param,$args,$msg=''){
+                  return (float)($param)??$args;
+              },
+              'string'=>function($field,$param,$args,$msg=''){
+                  return (string)($param)??$args;
+              },
+              'xss'=>function($field,&$param,$args,$msg=''){
+                  return $param = strip_tags($param,$args);
+              },
+              'html'=>function($field,$param,$args,$msg=''){
+                  return htmlspecialchars($param,$args ?? (ENT_COMPAT | ENT_HTML401));
+              },
+              'join'=>function($field,$param,$args,$msg=''){
+                  return implode($args??',',$param);
+              },
+              'trim' => function($field,$param,$args,$msg=''){
+                  return trim((string)$param)??$args;
+              },
+              'upper'=>function($field,$param,$args,$msg=''){
+                  return strtoupper($param)??$args;
+              },
+              'lower'=>function($field,$param,$args,$msg=''){
+                  return strtolower($param)??$args;
+              },
+              // 常用验证
+              'email' => function($field,$param,$args,$msg='%s 字段值必须是邮箱'){
+                  return filter_var($param, FILTER_VALIDATE_EMAIL) ? $param : throw new Exception(sprintf($msg,$field));
+              },
+              'mobile' => function($field,$param,$args,$msg='%s 字段值必须是手机号'){
+                  return filter_var($param, FILTER_VALIDATE_REGEXP, array("options"=>array("regexp"=>"/^1[3456789]\d{9}$/"))) ? $param : throw new Exception(sprintf($msg,$field));
+              },
+              'url'=>function($field,$param,$args,$msg='%s 字段值必须是网址'){
+                  return filter_var($param, FILTER_VALIDATE_URL) ? $param : throw new Exception(sprintf($msg,$field));
+              },
+              'ip'=>function($field,$param,$args,$msg='%s 字段值必须是IP地址'){
+                  return filter_var($param, FILTER_VALIDATE_IP) ? $param : throw new Exception(sprintf($msg,$field));
+              },
+              'date'=>function($field,$param,$args,$msg='%s 字段值必须是%s日期格式'){
+                  $format = $args ?? 'Y-m-d H:i:s';$dateTime = DateTime::createFromFormat($format, $param);
+                  if($dateTime &&  !$dateTime->getLastErrors()['warning_count']){
+                      return $param;
+                  }
+                  throw new Exception(sprintf($msg,$field,$format));
+              },
+              'time'=>function($field,$param,$args,$msg='%s 字段值必须是时间戳'){
+                  if (!is_numeric($param) || intval($param) != $param) {
+                      throw new Exception(sprintf($msg,$field));
+                  }
+                  $minTimestamp = strtotime('1970-01-01'); // 0
+                  $maxTimestamp = strtotime('2099-01-01'); // 4070908800000 32位是2038-01-19
+                  if($param <= $minTimestamp || $param >= $maxTimestamp){
+                      return  new Exception(sprintf($msg,$field));
+                  }
+                  return $param;
+              },
+              'idcard'=>function($field,$param,$args,$msg='%s 字段值必须是身份证号 %s'){
+                  if(strlen($param)!==18){
+                      return  new Exception(sprintf($msg,$field,'长度不足'));
+                  }
+                  if(preg_match('/^\d{17}[\dXx]$/', $param) == false){
+                      return  new Exception(sprintf($msg,$field,'格式错误'));
+                  }
+                  // 加权因子
+                  $weightFactors = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+                  // 校验码映射
+                  $checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+                  // 计算校验码
+                  $sum = 0;
+                  for ($i = 0; $i < 17; $i++) {
+                      $sum += intval($param[$i]) * $weightFactors[$i];
+                  }
+                  $mod = $sum % 11;
+                  $checkCode = $checkCodes[$mod];
+                  if(strtoupper($param[17]) !== $checkCode){
+                      return  new Exception(sprintf($msg,$field,'校验错误'));
+                  }
+                  return $param;
+              },
+              'regex'=>function($field,$param,$args,$msg='%s 字段值格式错误'){
+                  if(preg_match($args, $param) === false){
+                      return  new Exception(sprintf($msg,$field));
+                  }
+                  return $param;
+              },
+              'test'=>function($field,$param,$args,$msg='%s 字段值格式错误'){
+                  if(preg_match($args, $param) === false){
+                      return  new Exception(sprintf($msg,$field));
+                  }
+                  return $param;
+              },
+              //数字相关
+              'min'=>function($field,$param,$args,$msg='%s 字段数字不能小与%s'){
+                  $min = min(explode(',',$args));
+                  if(is_numeric($param) && $param >= $min){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$min));
+                  
+              },
+              'max'=>function($field,$param,$args,$msg='%s 字段数字不能大于%s'){
+                  $max = max(explode(',',$args));
+                  if(is_numeric($param) && ($param <= $max)){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$max));
+              },
+              'between' => function($field,$param,$args,$msg='%s 字段数字必须在%s和%s之间'){
+                  $conf = explode(',',$args);$min = min($conf);$max = max($conf);
+                  if(is_numeric($param) && $param >= $min && $param <= $max){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$min,$max));
+              },
+              // 字符串相关
+              'start' => function($field,$param,$args,$msg='%s 字段值必须以%s开头'){
+                  if(str_starts_with($param, $args)){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$args));
+              },
+              'end' => function($field,$param,$args,$msg='%s 字段值必须以%s结尾'){
+                  if(str_ends_with($param, $args)){
+                      return $param; 
+                  }
+                  return  new Exception(sprintf($msg,$field,$args));
+              },
+              'digit' => function($field,$param,$args,$msg='%s 字段值必须是数字'){
+                  if(ctype_digit($param)){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field));
+              },
+              'alpha'=>function($field,$param,$args,$msg='%s 字段值必须是字母'){
+                  if(ctype_alpha($param)){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field));
+              },
+              'alphanum'=>function($field,$param,$args,$msg='%s 字段值必须是字母和数字'){
+                  if(ctype_alnum($param)){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field));
+              },
+              'length'=>function($field,$param,$args,$msg='%s 字段长度必须%s~%s个字符'){
+                  $conf = explode(',',$args);$min = min($conf);$max = max($conf);$len = mb_strlen($param);
+                  if($len >= $min && $len <= $max){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$min,$max));
+              },
+              'in' => function($field,$param,$args,$msg='%s 字段值必须在%s范围中'){
+                  $conf = explode(',',$args);
+                  if(in_array($param,$conf)){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$args));
+              },
+              'not' => function($field,$param,$args,$msg='%s 字段值不能在%s范围中'){
+                  $conf = explode(',',$args);
+                  if(in_array($param,$conf) == false){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$args));
+              },
+              'count'=>function($field,$param,$args,$msg='%s 字段值数量必须%s~%s个'){
+                  $conf = explode(',',$args);$min = min($conf);$max = max($conf);
+                  
+                  if(is_array($param) && count($param) >= $min && count($param) <= $max){
+                      return $param;
+                  }
+                  return  new Exception(sprintf($msg,$field,$min,$max));
+              }
+          ];
+          // continue  break
+          try {
+              foreach ($rules as $field => $expression) {
+                  @[$field=>$param] = $params;
+                  // 
+                  if(is_iterable($expression)){
+                      if(array_is_list($expression)){
+                          @[$first] = $expression;
+                          foreach ($params[$field] as $inx => &$paraming) {
+                              @['err'=>$err,'msg'=>$msg] = $back = useValidator(is_string($first) ? [$paraming] : $paraming,is_string($first) ? $expression : $first,$intersect);
+                              if($err === 400){ throw new Exception("$field.$inx.$msg"); }
+                              $paraming = $back;
+                          }
+                      }else{
+                          foreach ($expression as &$expressions) {
+                              @['err'=>$err,'msg'=>$msg] = $back = useValidator($param,$expression,$intersect);
+                              if($err === 400){ throw new Exception("$field.$msg"); }
+                              $params[$field] = $back;
+                          }
+                      }
+                      continue;
+                  }
+                  // 
+                  @[$rule, $customMsg] = explode('#', $expression);$allows = explode('|', $rule);
+                  $required = str_contains($rule,'required');
+                  foreach ($allows as $singleRule) {
+                      @[$field=>$param] = $params;
+                      @[$ruleName, $ruleParam] = explode(':', $singleRule,2);
+                      @[$ruleName=>$call] = $presets;
+                      if(($param === null && $required === false) || $call === null){ continue; }
+                      $args = [$field,$param,$ruleParam];$customMsg && array_push($args,$customMsg);
+                      $params[$field] = $call(...$args);
+                  }
+              }
+              // 是否返回交集
+              return $intersect ? array_intersect_key($params,$rules) : $params;
+          } catch (\Exception $e) {
+              return ['err'=>400,'msg'=>$e->getMessage()];
+          }
+      }
   }

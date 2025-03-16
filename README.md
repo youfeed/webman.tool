@@ -11,8 +11,9 @@
 
 [Github Youloge.Tool](https://github.com/youfeed/webman.tool) Star我 `有帮助的话，记得给个star` 能提交点代码最好
 
-- 1.2.4 [`2025-03-15`]新增输入过滤器`useValidator`优雅处理表单输入
-- 1.2.2 [2025-03-13]新增谷歌令牌辅助函数 `secret_base32` => `useTOTP`
+- 1.2.6 [`2025-03-16`] 优化表单过滤器`useValidator`并拆分独立版本[Webman.validate](https://www.workerman.net/plugin/188)
+- 1.2.4 [`2025-03-15`] 新增输入过滤器`useValidator`优雅处理表单输入
+- 1.2.2 [2025-03-13] 新增谷歌令牌辅助函数 `secret_base32` => `useTOTP`
 - 1.0.1 增加 构造腾讯云请求体
 - 0.0.9 迁移多个辅助函数
 
@@ -73,29 +74,15 @@ return $config;
 
 ## 示例代码 - 辅助辅助 函数还是要配合代码食用才香~
 
-### 示例：`表单输入验证器`
+### 示例：`表单输入验证器` 查看使用详情文档 [webman.validat](https://www.workerman.net/plugin/edit/188)
 
  * 验证规则
  * - | 分割多个规则
  * - : 规则参数 ,多个参数用逗号分隔
  * - # 自定义错误提示
- * $rules = [
- * 'name'=>'required|trim|length:1,10|alphaNum:true',
- * 'age'=>'betweenNumber:1,100'
- * ];
- * 基本处理 数据预处理
- * required int bool float trim upper lower
- * 常用验证
- * email mobile url ip date time idcard regex test
- * 数字相关
- * min max between
- * 字符串相关
- * start end digit alpha alphanum length
- * 取值相关
- * in not
 
 ```php
- $array = useValidator($data,$rules);
+ $array = useValidator($data,$rules,$filter=true);
  ```
 
 ### 示例：`标准动态令牌`
