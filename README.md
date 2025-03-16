@@ -77,9 +77,9 @@ return $config;
 ### 示例：`表单输入验证器` 查看使用详情文档 [webman.validat](https://www.workerman.net/plugin/edit/188)
 
  * 验证规则
- * - | 分割多个规则
- * - : 规则参数 ,多个参数用逗号分隔
- * - # 自定义错误提示
+ * - `|` 分割多个规则
+ * - `:` 规则参数 `,`多个参数用逗号分隔
+ * - `#` 自定义错误提示
 
 ```php
  $array = useValidator($data,$rules,$filter=true);
