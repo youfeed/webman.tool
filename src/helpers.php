@@ -579,8 +579,8 @@ if(!function_exists('ini')){
 * @example
 */
 
-if(!function_exists('useValidator')){
-    function useValidator($params, $rules,$intersect = true){
+if(!function_exists('useValidate')){
+    function useValidate($params, $rules,$intersect = true){
         $presets = [
             // 基本处理
             'required' => function($field,$param,$args,$msg='%s 字段不能为空'){
@@ -601,7 +601,7 @@ if(!function_exists('useValidator')){
             'string'=>function($field,$param,$args,$msg=''){
                 return (string)($param)??$args;
             },
-            'xss'=>function($field,&$param,$args,$msg=''){
+            'xss'=>function($field,$param,$args,$msg=''){
                 return $param = strip_tags($param,$args);
             },
             'html'=>function($field,$param,$args,$msg=''){
@@ -621,16 +621,33 @@ if(!function_exists('useValidator')){
             },
             // 常用验证
             'email' => function($field,$param,$args,$msg='%s 字段值必须是邮箱'){
-                return filter_var($param, FILTER_VALIDATE_EMAIL) ? $param : throw new Exception(sprintf($msg,$field));
+                if(filter_var($param, FILTER_VALIDATE_EMAIL)){
+                    return $param;
+                }
+                throw new Exception(sprintf($msg,$field));
             },
             'mobile' => function($field,$param,$args,$msg='%s 字段值必须是手机号'){
-                return filter_var($param, FILTER_VALIDATE_REGEXP, array("options"=>array("regexp"=>"/^1[3456789]\d{9}$/"))) ? $param : throw new Exception(sprintf($msg,$field));
+                $options = [
+                    'options'=>[
+                        'regexp'=>"/^1[3456789]\d{9}$/"
+                    ]
+                ];
+                if(filter_var($param, FILTER_VALIDATE_REGEXP, $options)){
+                    return  $param;
+                }
+                throw new Exception(sprintf($msg,$field));
             },
             'url'=>function($field,$param,$args,$msg='%s 字段值必须是网址'){
-                return filter_var($param, FILTER_VALIDATE_URL) ? $param : throw new Exception(sprintf($msg,$field));
+                if(filter_var($param, FILTER_VALIDATE_URL)){
+                    return  $param;
+                }
+                throw new Exception(sprintf($msg,$field));
             },
             'ip'=>function($field,$param,$args,$msg='%s 字段值必须是IP地址'){
-                return filter_var($param, FILTER_VALIDATE_IP) ? $param : throw new Exception(sprintf($msg,$field));
+                if(filter_var($param, FILTER_VALIDATE_IP)){
+                    return  $param;
+                }
+                throw new Exception(sprintf($msg,$field));
             },
             'date'=>function($field,$param,$args,$msg='%s 字段值必须是%s日期格式'){
                 $format = $args ?? 'Y-m-d H:i:s';$dateTime = DateTime::createFromFormat($format, $param);
@@ -777,13 +794,13 @@ if(!function_exists('useValidator')){
                 if(is_iterable($expression)){
                     if(array_is_list($expression)){
                         @[$first] = $expression;
-                        foreach ($params[$field] as $inx => &$paraming) {
+                        foreach ($params[$field] as $inx => $paraming) {
                             @['err'=>$err,'msg'=>$msg] = $back = useValidator(is_string($first) ? [$paraming] : $paraming,is_string($first) ? $expression : $first,$intersect);
                             if($err === 400){ throw new Exception("$field.$inx.$msg"); }
-                            $paraming = $back;
+                            $params[$field][$inx] = $back;
                         }
                     }else{
-                        foreach ($expression as &$expressions) {
+                        foreach ($expression as $expressions) {
                             @['err'=>$err,'msg'=>$msg] = $back = useValidator($param,$expression,$intersect);
                             if($err === 400){ throw new Exception("$field.$msg"); }
                             $params[$field] = $back;
@@ -805,7 +822,7 @@ if(!function_exists('useValidator')){
             }
             // 是否返回交集
             return $intersect ? array_intersect_key($params,$rules) : $params;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return ['err'=>400,'msg'=>$e->getMessage()];
         }
     }

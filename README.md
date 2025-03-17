@@ -82,6 +82,11 @@ return $config;
  * - `#` 自定义错误提示
 
 ```php
+ $rules = [
+ 	'name'=>'required|min:3|max:10',
+ 	'age'=>'required|int|min:18|max:100',
+ 	'email'=>'required|email',
+ ]
  $array = useValidator($data,$rules,$filter=true);
  ```
 
