@@ -583,6 +583,12 @@ if(!function_exists('useValidate')){
     function useValidate($params, $rules,$intersect = true){
         $presets = [
             // 基本处理
+            'require' => function($field,$param,$args,$msg='%s 字段不能为空'){
+                if(empty($param)){
+                    throw new Exception(sprintf($msg,$field));
+                }
+                return $param;
+            },
             'required' => function($field,$param,$args,$msg='%s 字段不能为空'){
                 if(empty($param)){
                     throw new Exception(sprintf($msg,$field));
@@ -596,7 +602,7 @@ if(!function_exists('useValidate')){
                 return (bool)($param)??$args;
             },
             'float'=>function($field,$param,$args,$msg=''){
-                return (float)($param);
+                return (float)($param)??$args;
             },
             'string'=>function($field,$param,$args,$msg=''){
                 return (string)($param)??$args;
@@ -795,13 +801,13 @@ if(!function_exists('useValidate')){
                     if(array_is_list($expression)){
                         @[$first] = $expression;
                         foreach ($params[$field] as $inx => $paraming) {
-                            @['err'=>$err,'msg'=>$msg] = $back = useValidator(is_string($first) ? [$paraming] : $paraming,is_string($first) ? $expression : $first,$intersect);
+                            @['err'=>$err,'msg'=>$msg] = $back = useValidate(is_string($first) ? [$paraming] : $paraming,is_string($first) ? $expression : $first,$intersect);
                             if($err === 400){ throw new Exception("$field.$inx.$msg"); }
                             $params[$field][$inx] = $back;
                         }
                     }else{
                         foreach ($expression as $expressions) {
-                            @['err'=>$err,'msg'=>$msg] = $back = useValidator($param,$expression,$intersect);
+                            @['err'=>$err,'msg'=>$msg] = $back = useValidate($param,$expression,$intersect);
                             if($err === 400){ throw new Exception("$field.$msg"); }
                             $params[$field] = $back;
                         }
