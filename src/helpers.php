@@ -821,7 +821,12 @@ if(!function_exists('useValidate')){
                     @[$field=>$param] = $params;
                     @[$ruleName, $ruleParam] = explode(':', $singleRule,2);
                     @[$ruleName=>$call] = $presets;
-                    if(($param === null && $required === false) || $call === null){ continue; }
+                    if(($param === null && $required === false) || $call === null){ 
+                        if(in_array($ruleName,['int','bool','float','string']) && $ruleParam){
+                            $params[$field] = $ruleParam;
+                        }
+                        continue; 
+                    }
                     $args = [$field,$param,$ruleParam];$customMsg && array_push($args,$customMsg);
                     $params[$field] = $call(...$args);
                 }
