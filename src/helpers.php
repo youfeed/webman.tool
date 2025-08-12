@@ -576,7 +576,6 @@ if(!function_exists('array_is_list')){
         return $arg === [] || (array_keys($arg) === range(0, count($arg) - 1));
     }
 }
-
 /**
 * 验证和处理表单数据
 *
