@@ -565,6 +565,17 @@ if(!function_exists('ini')){
       return $two === null ? $item ?? $def : $item[$two] ?? $def;
     }
 }
+/**
+ * 扩展方法 
+ * 用于兼容 (PHP 8 <= 8.1.0) 7.2+
+ * 判断是否可循环数组
+ */
+if(!function_exists('array_is_list')){
+    function array_is_list($arg)
+    {
+        return $arg === [] || (array_keys($arg) === range(0, count($arg) - 1));
+    }
+}
 
 /**
 * 验证和处理表单数据
@@ -596,19 +607,21 @@ if(!function_exists('useValidate')){
                 return $param;
             },
             'int'=>function($field,$param,$args,$msg=''){
-                return (int)($param)??$args;
+                return (int)($param??$args);
             },
             'bool'=>function($field,$param,$args,$msg=''){
-                return (bool)($param)??$args;
+                return (bool)($param??$args);
             },
             'float'=>function($field,$param,$args,$msg=''){
-                return (float)($param)??$args;
+                return (float)($param??$args);
             },
             'string'=>function($field,$param,$args,$msg=''){
-                return (string)($param)??$args;
+                return (string)($param??$args);
             },
+            // 常用处理
             'xss'=>function($field,$param,$args,$msg=''){
-                return $param = strip_tags($param,$args);
+                $replace = str_replace(["'",'"',';','--','%','_','(',')'],'',$param);
+                return strip_tags($replace,$args);
             },
             'html'=>function($field,$param,$args,$msg=''){
                 return htmlspecialchars($param,$args ?? (ENT_COMPAT | ENT_HTML401));
@@ -769,6 +782,13 @@ if(!function_exists('useValidate')){
                 }
                 throw new Exception(sprintf($msg,$field,$min,$max));
             },
+            'len'=>function($field,$param,$args,$msg='%s 字段长度必须%s~%s个字符'){
+                $conf = explode(',',$args);$min = min($conf);$max = max($conf);$len = mb_strlen($param);
+                if($len >= $min && $len <= $max){
+                    return $param;
+                }
+                throw new Exception(sprintf($msg,$field,$min,$max));
+            },
             'in' => function($field,$param,$args,$msg='%s 字段值必须在%s范围中'){
                 $conf = explode(',',$args);
                 if(in_array($param,$conf)){
@@ -822,7 +842,7 @@ if(!function_exists('useValidate')){
                     @[$ruleName, $ruleParam] = explode(':', $singleRule,2);
                     @[$ruleName=>$call] = $presets;
                     if(($param === null && $required === false) || $call === null){ 
-                        if(in_array($ruleName,['int','bool','float','string']) && is_null($ruleParam)){
+                        if(in_array($ruleName,['int','bool','float','string']) && is_null($ruleParam) == false){
                             $params[$field] = $ruleParam;
                         }
                         continue; 
