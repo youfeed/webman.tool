@@ -12,6 +12,7 @@
 
 [Github Youloge.Tool](https://github.com/youfeed/webman.tool) Star 我 `有帮助的话，记得给个star` 能提交点代码最好
 
+- 1.3.3 [2025-08-14] `useValidate`新增`array`和`object`数据类型
 - 1.3.0 [2025-08-12] `useValidate` 默认数据类型与默认值：数据类型修复为一致
 - 1.2.8 [2025-03-20] 增加`useValidate`基本数据类型`int:100`,`float:1.02`,`bool:false`,`string:默认值` 提供默认值支持
 - 1.2.7 [2025-03-16] 优化表单过滤器`useValidate`并拆分独立版本[Webman.validate](https://www.workerman.net/plugin/188)

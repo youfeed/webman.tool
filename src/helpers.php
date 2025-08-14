@@ -617,6 +617,12 @@ if(!function_exists('useValidate')){
             'string'=>function($field,$param,$args,$msg=''){
                 return (string)($param??$args);
             },
+            'array'=>function($field,$param,$args,$msg=''){
+                return (array)($param??$args);
+            },
+            'object'=>function($field,$param,$args,$msg=''){
+                return (object)($param??$args);
+            },
             // 常用处理
             'xss'=>function($field,$param,$args,$msg=''){
                 $replace = str_replace(["'",'"',';','--','%','_','(',')'],'',$param);
