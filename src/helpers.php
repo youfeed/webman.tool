@@ -594,15 +594,27 @@ if(!function_exists('useValidate')){
         $presets = [
             // 基本处理
             'require' => function($field,$param,$args,$msg='%s 字段不能为空'){
-                if(empty($param)){
-                    throw new Exception(sprintf($msg,$field));
+                // 1. 检查参数是否存在（未提交或值为 null 则视为缺失）
+                if (!isset($param) || $param === null) {
+                    throw new Exception(sprintf($msg, $field));
                 }
+                // 2. 处理字符串类型：排除纯空格（如 '   ' 应视为空）
+                if (is_string($param) && trim($param) === '') {
+                    throw new Exception(sprintf($msg, $field));
+                }
+                // 3. 其他情况（如 0、'0'、false、数组等）视为有效
                 return $param;
             },
             'required' => function($field,$param,$args,$msg='%s 字段不能为空'){
-                if(empty($param)){
-                    throw new Exception(sprintf($msg,$field));
+                // 1. 检查参数是否存在（未提交或值为 null 则视为缺失）
+                if (!isset($param) || $param === null) {
+                    throw new Exception(sprintf($msg, $field));
                 }
+                // 2. 处理字符串类型：排除纯空格（如 '   ' 应视为空）
+                if (is_string($param) && trim($param) === '') {
+                    throw new Exception(sprintf($msg, $field));
+                }
+                // 3. 其他情况（如 0、'0'、false、数组等）视为有效
                 return $param;
             },
             'int'=>function($field,$param,$args,$msg=''){
