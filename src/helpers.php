@@ -635,6 +635,12 @@ if(!function_exists('useValidate')){
             'object'=>function($field,$param,$args,$msg=''){
                 return (object)($param??$args);
             },
+            'sprintf'=>function($field,$param,$args='',$msg=''){
+                return sprintf($args,$param);
+            },
+            'format'=>function($field,$param,$args='',$msg=''){
+                return sprintf($args,$param);
+            },
             // 常用处理
             'xss'=>function($field,$param,$args,$msg=''){
                 $replace = str_replace(["'",'"',';','--','%','_','(',')'],'',$param);
