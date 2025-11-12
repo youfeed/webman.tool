@@ -740,7 +740,7 @@ if(!function_exists('useValidate')){
             },
             'test'=>function($field,$param,$args,$msg='%s 字段值格式错误'){
                 if(preg_match($args, $param) === false){
-                throw new Exception(sprintf($msg,$field));
+                    throw new Exception(sprintf($msg,$field));
                 }
                 return $param;
             },
@@ -748,22 +748,21 @@ if(!function_exists('useValidate')){
             'min'=>function($field,$param,$args,$msg='%s 字段数字不能小与%s'){
                 $min = min(explode(',',$args));
                 if(is_numeric($param) && $param >= $min){
-                    return (int)$param;
+                    return $param;
                 }
                 throw new Exception(sprintf($msg,$field,$min));
-                
             },
             'max'=>function($field,$param,$args,$msg='%s 字段数字不能大于%s'){
                 $max = max(explode(',',$args));
                 if(is_numeric($param) && ($param <= $max)){
-                    return (int)$param;
+                    return $param;
                 }
                 throw new Exception(sprintf($msg,$field,$max));
             },
             'between' => function($field,$param,$args,$msg='%s 字段数字必须在%s和%s之间'){
                 $conf = explode(',',$args);$min = min($conf);$max = max($conf);
                 if(is_numeric($param) && $param >= $min && $param <= $max){
-                    return (int)$param;
+                    return $param;
                 }
                 throw new Exception(sprintf($msg,$field,$min,$max));
             },
@@ -865,7 +864,7 @@ if(!function_exists('useValidate')){
                     @[$ruleName, $ruleParam] = explode(':', $singleRule,2);
                     @[$ruleName=>$call] = $presets;
                     if(($param === null && $required === false) || $call === null){ 
-                        if(in_array($ruleName,['int','bool','float','string']) && is_null($ruleParam) == false){
+                        if(in_array($ruleName,['int','bool','float','string','array','object']) && is_null($ruleParam) == false){
                             $params[$field] = $ruleParam;
                         }
                         continue; 
