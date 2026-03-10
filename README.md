@@ -12,6 +12,7 @@
 
 [Github Youloge.Tool](https://github.com/youfeed/webman.tool) Star 我 `有帮助的话，记得给个star` 能提交点代码最好
 
+- 1.5.0 [2026-03-11] `useValidate`升级为V2版本，并修复个别函数问题
 - 1.4.1 [2025-11-13] `useValidate`新增`sprintf`,`format`规则，格式化字符串
 - 1.4.0 [2025-10-25] `useValidate`优化`required`规则，允许`0、'0'、false、空数组`
 - 1.3.3 [2025-08-14] `useValidate`新增`array`和`object`数据类型
