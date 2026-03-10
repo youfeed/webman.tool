@@ -8,18 +8,18 @@
 // +----------------------------------------------------------------------
 use support\Db;
 /**
-* 生成指定长度 - 用于验证码
-*
-* 使用Base32字符集：ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
-*
-* @param int $len 长度
-*
-* @return string 不重复的验证码
-*/
-if(!function_exists('rand_base32')){
-    function rand_base32($len=4)
-    { 
-      return substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"),0,$len);
+ * 生成指定长度 - 用于验证码
+ *
+ * 使用Base32字符集：ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+ *
+ * @param int $len 长度
+ *
+ * @return string 不重复的验证码
+ */
+if (!function_exists('rand_base32')) {
+    function rand_base32($len = 4)
+    {
+        return substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"), 0, $len);
     }
 }
 /**
@@ -32,8 +32,9 @@ if(!function_exists('rand_base32')){
  * 
  * @return string 返回密钥
  */
-if(!function_exists('secret_base32')){
-    function secret_base32($len=16,$prefix = ''){
+if (!function_exists('secret_base32')) {
+    function secret_base32($len = 16, $prefix = '')
+    {
         $char = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32字符集
         for ($i = 0; $i < $len; $i++) {
             $prefix .= $char[rand(0, strlen($char) - 1)];
@@ -60,161 +61,168 @@ if(!function_exists('secret_base32')){
  * [893277,448721,854850]
  * ```
  */
-if(!function_exists('useTOTP')){
-  function useTOTP($secret,$time=null){
-    $secret = str_replace('=', '', strtoupper($secret));
-    $time = floor(($time ?? time()) / 30);
-    $char = array_flip(str_split('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')); // Base32字符集
-    $length = strlen($secret);$buffer = 0;$bits = 0;$key = '';
-    for ($i = 0; $i < $length; $i++) {
-        $buffer <<= 5;
-        $buffer |= $char[$secret[$i]];
-        $bits += 5;
-        // 当累积的位数达到或超过8位时，处理这些位
-        while ($bits >= 8) {
-            $byte = ($buffer & (0xFF << ($bits - 8))) >> ($bits - 8);
-            $key .= chr($byte);
-            $bits -= 8;
+if (!function_exists('useTOTP')) {
+    function useTOTP($secret, $time = null)
+    {
+        $secret = str_replace('=', '', strtoupper($secret));
+        $time = floor(($time ?? time()) / 30);
+        $char = array_flip(str_split('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')); // Base32字符集
+        $length = strlen($secret);
+        $buffer = 0;
+        $bits = 0;
+        $key = '';
+        for ($i = 0; $i < $length; $i++) {
+            $buffer <<= 5;
+            $buffer |= $char[$secret[$i]];
+            $bits += 5;
+            // 当累积的位数达到或超过8位时，处理这些位
+            while ($bits >= 8) {
+                $byte = ($buffer & (0xFF << ($bits - 8))) >> ($bits - 8);
+                $key .= chr($byte);
+                $bits -= 8;
+            }
         }
+        //
+        $pool = [$time - 1, $time, $time + 1];
+        foreach ($pool as &$item) {
+            $item = pack('N*', 0) . pack('N*', $item);
+            $hmac = hash_hmac('sha1', $item, $key, true);
+            $offset = ord(substr($hmac, -1)) & 0xF;
+            $code = (
+                ((ord($hmac[$offset]) & 0x7F) << 24) |
+                ((ord($hmac[$offset + 1]) & 0xFF) << 16) |
+                ((ord($hmac[$offset + 2]) & 0xFF) << 8) |
+                (ord($hmac[$offset + 3]) & 0xFF)
+            ) % pow(10, 6);
+            $item = str_pad($code, 6, '0', STR_PAD_LEFT);
+        }
+        return $pool;
     }
-    //
-    $pool = [$time-1,$time,$time+1];
-    foreach($pool as &$item){
-        $item = pack('N*', 0) . pack('N*', $item);
-        $hmac = hash_hmac('sha1', $item, $key, true);
-        $offset = ord(substr($hmac, -1)) & 0xF;
-        $code = ( 
-            ((ord($hmac[$offset]) & 0x7F) << 24) | 
-            ((ord($hmac[$offset + 1]) & 0xFF) << 16) | 
-            ((ord($hmac[$offset + 2]) & 0xFF) << 8) | 
-            (ord($hmac[$offset + 3]) & 0xFF) 
-        ) % pow(10, 6);
-        $item = str_pad($code, 6, '0', STR_PAD_LEFT);
-    }
-    return $pool;
-  }
 }
 /**
-* Mysql实例 
-* 推荐使用 模型
-* [laravel数据库](https://github.com/illuminate/database)
-*/
-if(!function_exists('onMysql')){
+ * Mysql实例 
+ * 推荐使用 模型
+ * [laravel数据库](https://github.com/illuminate/database)
+ */
+if (!function_exists('onMysql')) {
     function onMysql($table)
     {
-      return Db::table($table);
+        return Db::table($table);
     }
 }
 /*
-* Redis实例 - 配置文件读取默认
-* 返回句柄
-*/
-if(!function_exists('onRedis')){
+ * Redis实例 - 配置文件读取默认
+ * 返回句柄
+ */
+if (!function_exists('onRedis')) {
     function onRedis()
     {
-      @['host'=>$host,'password'=>$password,'port'=>$port] = config('redis.default');
-      $redis = new Redis;
-      $redis->connect($host, $port);
-      $password && $redis->auth($password);
-      return $redis;
+        @['host' => $host, 'password' => $password, 'port' => $port] = config('redis.default');
+        $redis = new Redis();
+        $redis->connect($host, $port);
+        $password && $redis->auth($password);
+        return $redis;
     }
 }
 /*
-* Redis数组执行(自动close)
-* runRedis('HGET',["wallet",$uuid])
-* runRedis('HINCRBY',["wallet",$uuid,10])
-*/
-if(!function_exists('runRedis')){
-    function runRedis($method,$params=[])
+ * Redis数组执行(自动close)
+ * runRedis('HGET',["wallet",$uuid])
+ * runRedis('HINCRBY',["wallet",$uuid,10])
+ */
+if (!function_exists('runRedis')) {
+    function runRedis($method, $params = [])
     {
-      @['host'=>$host,'password'=>$password,'port'=>$port] = config('redis.default');
-      $redis = new Redis;
-      $redis->connect($host, $port);
-      $password && $redis->auth($password);
-      $data = $redis->$method(...$params);
-      $redis->close();
-      return $data;
+        @['host' => $host, 'password' => $password, 'port' => $port] = config('redis.default');
+        $redis = new Redis();
+        $redis->connect($host, $port);
+        $password && $redis->auth($password);
+        $data = $redis->$method(...$params);
+        $redis->close();
+        return $data;
     }
 }
 /*
-* [webman-queue] 队列封装
-* @param string $queue 队列名称
-* @param array $data 数据
-* @param int|null $delay 可选：延迟时间
-*/
-if(!function_exists('onQueue')){
-    function onQueue($queue,$data,$delay=0)
+ * [webman-queue] 队列封装
+ * @param string $queue 队列名称
+ * @param array $data 数据
+ * @param int|null $delay 可选：延迟时间
+ */
+if (!function_exists('onQueue')) {
+    function onQueue($queue, $data, $delay = 0)
     {
-      $queue_waiting = '{redis-queue}-waiting';
-      $queue_delay = '{redis-queue}-delayed';
-      $now = time();
-      $package_str = json_encode([
-          'id'       => rand(),
-          'time'     => $now,
-          'delay'    => $delay,
-          'attempts' => 0,
-          'queue'    => $queue,
-          'data'     => $data
-      ]);
-      return $delay ? onRedis()->zAdd($queue_delay, $now + $delay, $package_str) : onRedis()->lPush($queue_waiting.$queue, $package_str);
+        $queue_waiting = '{redis-queue}-waiting';
+        $queue_delay = '{redis-queue}-delayed';
+        $now = time();
+        $package_str = json_encode([
+            'id' => rand(),
+            'time' => $now,
+            'delay' => $delay,
+            'attempts' => 0,
+            'queue' => $queue,
+            'data' => $data
+        ]);
+        return $delay ? onRedis()->zAdd($queue_delay, $now + $delay, $package_str) : onRedis()->lPush($queue_waiting . $queue, $package_str);
     }
 }
 /*
-* [http-client] 异步网络请求封装
-* @param string $url 请求网址
-* @param array $options 请求配置
-* 示例：'https://example.com/', ['method' => 'POST','version' => '1.1','headers' => ['Connection' => 'keep-alive'],'data' => ['key1' => 'value1', 'key2' => 'value2'],]
-* 请求返回 返回 [JOSN] 非对象返回 [raw=响应内容]
-* 错误返回 ['err'=>500,'msg'=>'错误信息']
-*/
-if(!function_exists('onRequest')){
-    function onRequest($url,$options=[])
+ * [http-client] 异步网络请求封装
+ * @param string $url 请求网址
+ * @param array $options 请求配置
+ * 示例：'https://example.com/', ['method' => 'POST','version' => '1.1','headers' => ['Connection' => 'keep-alive'],'data' => ['key1' => 'value1', 'key2' => 'value2'],]
+ * 请求返回 返回 [JOSN] 非对象返回 [raw=响应内容]
+ * 错误返回 ['err'=>500,'msg'=>'错误信息']
+ */
+if (!function_exists('onRequest')) {
+    function onRequest($url, $options = [])
     {
-      static $http;
-      $http || $http = new Workerman\Http\Client([
-        'max_conn_per_addr' => 128, // 每个域名最多维持多少并发连接
-        'keepalive_timeout' => 15,  // 连接多长时间不通讯就关闭
-        'connect_timeout'   => 30,  // 连接超时时间
-        'timeout'           => 30,  // 请求发出后等待响应的超时时间
-      ]);
-      try {
-        $response = $http->request($url, array_merge(['method' => 'GET','version' => '1.1'],$options));
-        $boby = (string)$response->getBody();
-        return json_decode($boby,true) ?? ['raw'=>$boby];
-      } catch (\Exception $e) {
-        return ['err'=>500,'msg'=>$e->getMessage];
-      }
+        static $http;
+        $http || $http = new Workerman\Http\Client([
+            'max_conn_per_addr' => 128, // 每个域名最多维持多少并发连接
+            'keepalive_timeout' => 15,  // 连接多长时间不通讯就关闭
+            'connect_timeout' => 30,  // 连接超时时间
+            'timeout' => 30,  // 请求发出后等待响应的超时时间
+        ]);
+        try {
+            $response = $http->request($url, array_merge(['method' => 'GET', 'version' => '1.1'], $options));
+            $boby = (string) $response->getBody();
+            return json_decode($boby, true) ?? ['raw' => $boby];
+        } catch (\Exception $e) {
+            return ['err' => 500, 'msg' => $e->getMessage];
+        }
     }
 }
 /*
-* HTTP代理网络请求 - 配置文件随机读取 [youloge.proxy[0~n]]
-* 请求参数与 httpProxy == onRequest == http-client(request) 一样
-* @param string $url 请求网址
-* @param array $options 请求配置
-*/
-if(!function_exists('httpProxy')){
-    function httpProxy($url,$options=[])
+ * HTTP代理网络请求 - 配置文件随机读取 [youloge.proxy[0~n]]
+ * 请求参数与 httpProxy == onRequest == http-client(request) 一样
+ * @param string $url 请求网址
+ * @param array $options 请求配置
+ */
+if (!function_exists('httpProxy')) {
+    function httpProxy($url, $options = [])
     {
         try {
-            @['method'=>$method,'headers'=>$headers,'data'=>$data] = $options;
-            $proxy = config('youloge.proxy'); $is_list = array_is_list($proxy); $is_list && shuffle($proxy);
-            @[['addr'=>$addr,'port'=>$port,'pass'=>$pass]] = $is_list ? $proxy : [$proxy];
-            $method = strtoupper($method ?? 'GET');$headers = ['Connection: keep-alive'];
+            @['method' => $method, 'headers' => $headers, 'data' => $data] = $options;
+            $proxy = config('youloge.proxy');
+            $is_list = array_is_list($proxy);
+            $is_list && shuffle($proxy);
+            @[['addr' => $addr, 'port' => $port, 'pass' => $pass]] = $is_list ? $proxy : [$proxy];
+            $method = strtoupper($method ?? 'GET');
+            $headed = ['Connection: keep-alive'];
             // 处理头信息
-            if (is_object($header)) {
-                foreach ($header as $key => $value) {
-                    $headers[] = "$key: $value";
+            if (is_object($headers)) {
+                foreach ($headers as $key => $value) {
+                    $headed[] = "$key: $value";
                 }
-            } elseif (is_array($header)) {
-                $headers = array_merge($headers, $header);
+            } elseif (is_array($headers)) {
+                $headed = array_merge($headed, $headers);
             }
             //
             $curl = curl_init();
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 0, 
-                CURLOPT_HTTPHEADER=>$headers,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_SSL_VERIFYPEER => 0,
                 CURLOPT_SSL_VERIFYHOST => 0,
                 // 代理配置
@@ -222,15 +230,15 @@ if(!function_exists('httpProxy')){
                 CURLOPT_PROXYPORT => $port,
                 CURLOPT_PROXYUSERPWD => $pass,
             ]);
-            if($method == 'POST'){
+            if ($method == 'POST') {
                 curl_setopt($curl, CURLOPT_POST, true);
                 $data && curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
             }
             $response = curl_exec($curl);
             curl_close($curl);
-            return json_decode($response,true) ?? ['raw'=>$response];
+            return json_decode($response, true) ?? ['raw' => $response];
         } catch (\Throwable $th) {
-            return ['err'=>500,'msg'=>$th->getMessage];
+            return ['err' => 500, 'msg' => $th->getMessage()];
         }
     }
 }
@@ -242,23 +250,26 @@ if(!function_exists('httpProxy')){
  * @param array $header 其他表单请求头
  * @return array 上传结果
  */
-if(!function_exists('virtualFile')){
-    function virtualFile($url,$files,$body=[],$header=[])
+if (!function_exists('virtualFile')) {
+    function virtualFile($url, $files, $body = [], $header = [])
     {
         try {
-            $headers = ['Content-Type: multipart/form-data'];$form = array_merge([],$body);$temps = [];
-            if(is_object($header)){
+            $headers = ['Content-Type: multipart/form-data'];
+            $form = array_merge([], $body);
+            $temps = [];
+            if (is_object($header)) {
                 foreach ($header as $key => $value) {
                     $headers[] = "$key: $value";
                 }
-            }else{
-                $headers = array_merge($headers,$header);
+            } else {
+                $headers = array_merge($headers, $header);
             }
             // 生成文件
-            foreach($files as $key=>['name'=>$name,'mime'=>$mime,'data'=>$data]){
-                $temp = tmpfile();@['uri'=>$uri] = stream_get_meta_data($temp);
+            foreach ($files as $key => ['name' => $name, 'mime' => $mime, 'data' => $data]) {
+                $temp = tmpfile();
+                @['uri' => $uri] = stream_get_meta_data($temp);
                 fwrite($temp, $data);
-                $form[$key] = curl_file_create($uri,$mime,$name);
+                $form[$key] = curl_file_create($uri, $mime, $name);
                 $temps[] = $temp;
             }
             // 发送请求
@@ -267,7 +278,7 @@ if(!function_exists('virtualFile')){
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 0, 
+                CURLOPT_TIMEOUT => 0,
                 CURLOPT_POST => true,
                 CURLOPT_SSL_VERIFYPEER => 0,
                 CURLOPT_SSL_VERIFYHOST => 0,
@@ -276,10 +287,12 @@ if(!function_exists('virtualFile')){
             $response = curl_exec($curl);
             curl_close($curl);
             // 关闭临时文件
-            foreach ($temps as $temp) { fclose($temp); }
-            return json_decode($response,true) ?? ['raw'=>$response];
+            foreach ($temps as $temp) {
+                fclose($temp);
+            }
+            return json_decode($response, true) ?? ['raw' => $response];
         } catch (\Throwable $e) {
-            return ['err'=>500,'msg'=>$e->getMessage()];
+            return ['err' => 500, 'msg' => $e->getMessage()];
         }
     }
 }
@@ -287,18 +300,20 @@ if(!function_exists('virtualFile')){
  * =============================
  * = 算法相关
  * =============================
-*/
+ */
 /**
  * 安全的base64编码
  */
-if(!function_exists('safe_base64_encode')){
-    function safe_base64_encode($data){
-      return str_replace(['+','/','='],['-','_',''],base64_encode($data));
+if (!function_exists('safe_base64_encode')) {
+    function safe_base64_encode($data)
+    {
+        return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($data));
     }
 }
-if(!function_exists('safe_base64_decode')){
-    function safe_base64_decode($data){
-      return base64_decode(str_replace(['-','_'],['+','/'],$data));
+if (!function_exists('safe_base64_decode')) {
+    function safe_base64_decode($data)
+    {
+        return base64_decode(str_replace(['-', '_'], ['+', '/'], $data));
     }
 }
 /**
@@ -310,43 +325,47 @@ if(!function_exists('safe_base64_decode')){
  * @param array $payload  请求载体 无参数时 设为[],null,false,0 即可
  * @param string $appid  选择那个商户id下得的证书
  */
-if(!function_exists('tencent_request')){
-  function tencent_request($method,$endpoint_action_version_region,$payload,$appid)
-  {
-    @['secretid'=>$SecretId,'secretkey'=>$SecretKey] = config("youloge.$appid");
-    @[$Endpoint,$Action,$Version,$Region] =  $tencent = explode('/',$endpoint_action_version_region);
-    @[$Server] = explode('.',$Endpoint);$data = $payload ? json_encode($payload,320) : '';$method = strtoupper($method);
-    // 准备参数
-    $Timestamp = time();
-    $Timesdate = gmdate("Y-m-d",$Timestamp);
-    $body_h256 = hash('SHA256',$data);
-    // 第一步
-    $request_h256 = hash('SHA256',"$method\n/\n\ncontent-type:application/json\nhost:$Endpoint\n\ncontent-type;host\n$body_h256");
-    // 第二步
-    $StringToSign = "TC3-HMAC-SHA256\n$Timestamp\n$Timesdate/$Server/tc3_request\n$request_h256";
-    // 第三步
-    $SecretDate = hash_hmac('SHA256', $Timesdate,"TC3$SecretKey", true);
-    $SecretService = hash_hmac('SHA256',$Server,$SecretDate, true);
-    $SecretSigning = hash_hmac('SHA256',"tc3_request",$SecretService, true);
-    $Signature = hash_hmac('SHA256',$StringToSign,$SecretSigning);
-    // 第四步
-    $Authorization = "TC3-HMAC-SHA256 Credential=$SecretId/$Timesdate/$Server/tc3_request, SignedHeaders=content-type;host, Signature=$Signature";
-    $header = [
-      "Authorization"=>"$Authorization",
-      "Content-Type"=>"application/json", // ; charset=utf-8
-      "X-TC-Action"=>"$Action",
-      "X-TC-Version"=>"$Version",
-      "X-TC-Timestamp"=>"$Timestamp"
-    ];
-    $Region && $header['X-TC-Region'] = $Region;
-    // 第五步
-    return ["https://$Endpoint",[
-        'method' => $method,
-        'headers' => $header,
-        'data' => $data,
-      ]
-    ];
-  }
+if (!function_exists('tencent_request')) {
+    function tencent_request($method, $endpoint_action_version_region, $payload, $appid)
+    {
+        @['secretid' => $SecretId, 'secretkey' => $SecretKey] = config("youloge.$appid");
+        @[$Endpoint, $Action, $Version, $Region] = $tencent = explode('/', $endpoint_action_version_region);
+        @[$Server] = explode('.', $Endpoint);
+        $data = $payload ? json_encode($payload, 320) : '';
+        $method = strtoupper($method);
+        // 准备参数
+        $Timestamp = time();
+        $Timesdate = gmdate("Y-m-d", $Timestamp);
+        $body_h256 = hash('SHA256', $data);
+        // 第一步
+        $request_h256 = hash('SHA256', "$method\n/\n\ncontent-type:application/json\nhost:$Endpoint\n\ncontent-type;host\n$body_h256");
+        // 第二步
+        $StringToSign = "TC3-HMAC-SHA256\n$Timestamp\n$Timesdate/$Server/tc3_request\n$request_h256";
+        // 第三步
+        $SecretDate = hash_hmac('SHA256', $Timesdate, "TC3$SecretKey", true);
+        $SecretService = hash_hmac('SHA256', $Server, $SecretDate, true);
+        $SecretSigning = hash_hmac('SHA256', "tc3_request", $SecretService, true);
+        $Signature = hash_hmac('SHA256', $StringToSign, $SecretSigning);
+        // 第四步
+        $Authorization = "TC3-HMAC-SHA256 Credential=$SecretId/$Timesdate/$Server/tc3_request, SignedHeaders=content-type;host, Signature=$Signature";
+        $header = [
+            "Authorization" => "$Authorization",
+            "Content-Type" => "application/json", // ; charset=utf-8
+            "X-TC-Action" => "$Action",
+            "X-TC-Version" => "$Version",
+            "X-TC-Timestamp" => "$Timestamp"
+        ];
+        $Region && $header['X-TC-Region'] = $Region;
+        // 第五步
+        return [
+            "https://$Endpoint",
+            [
+                'method' => $method,
+                'headers' => $header,
+                'data' => $data,
+            ]
+        ];
+    }
 }
 /**
  * 七牛签名 - 配置文件读取[youloge.qiniu.ak/sk]
@@ -357,37 +376,37 @@ if(!function_exists('tencent_request')){
  * 七牛HMAC - 
  * @param string $string 待签名字符串
  */
-if(!function_exists('qiniu_hmac')){
+if (!function_exists('qiniu_hmac')) {
     function qiniu_hmac($string)
     {
-      @['ak'=>$AK,'sk'=>$SK] = config('youloge.qiniu');
-      $sign =  str_replace(['+','/'],['-','_'],base64_encode(hash_hmac('sha1',$string,$SK,true)));
-      return "$AK:$sign";
+        @['ak' => $AK, 'sk' => $SK] = config('youloge.qiniu');
+        $sign = str_replace(['+', '/'], ['-', '_'], base64_encode(hash_hmac('sha1', $string, $SK, true)));
+        return "$AK:$sign";
     }
 }
 /**
  * 七牛SIGN - 
  * @param array $params 待签名数组对象
  */
-if(!function_exists('qiniu_sign')){
+if (!function_exists('qiniu_sign')) {
     function qiniu_sign($params)
     {
-      $string = str_replace(['+','/'],['-','_'],base64_encode(json_encode($params)));
-      $sign =  qiniu_hmac($string);
-      return "$sign:$string";
+        $string = str_replace(['+', '/'], ['-', '_'], base64_encode(json_encode($params)));
+        $sign = qiniu_hmac($string);
+        return "$sign:$string";
     }
 }
 /**
  * 七牛AUTH - 
  * @param array $params 待签名数组对象
  */
-if(!function_exists('qiniu_auth')){
-    function qiniu_auth($params)
+if (!function_exists('qiniu_auth')) {
+    function qiniu_auth($params,$ContentType = "application/json")
     {
-      @['ak'=>$ak,'sk'=>$sk] = config('youloge.qiniu');
-      $string = str_replace(['+','/'],['-','_'],base64_encode($params));
-      $sign =  str_replace(['+','/'],['-','_'],base64_encode(hash_hmac('sha1',$string,$sk,true)));
-      return ["Authorization: Qiniu $ak:$sign", "Content-Type: $type"];
+        @['ak' => $ak, 'sk' => $sk] = config('youloge.qiniu');
+        $string = str_replace(['+', '/'], ['-', '_'], base64_encode($params));
+        $sign = str_replace(['+', '/'], ['-', '_'], base64_encode(hash_hmac('sha1', $string, $sk, true)));
+        return ["Authorization: Qiniu $ak:$sign", "Content-Type: $ContentType"];
     }
 }
 /**
@@ -396,14 +415,14 @@ if(!function_exists('qiniu_auth')){
  * @param number $second 可选：设置有效时间 默认3600秒
  * @param string $attname 可选：设置下载文件名 默认没有
  */
-if(!function_exists('qiniu_download')){
-    function qiniu_download($url,$second=3600,$attname='')
+if (!function_exists('qiniu_download')) {
+    function qiniu_download($url, $second = 3600, $attname = '')
     {
-        @['scheme'=>$scheme,'host'=>$host,'path'=>$path,'query'=>$queryString] = parse_url($url);
-        $queryString && parse_str($queryString,$query);
+        @['scheme' => $scheme, 'host' => $host, 'path' => $path, 'query' => $queryString] = parse_url($url);
+        $queryString && parse_str($queryString, $query);
         $query['e'] = time() + $second;
-        $uri = sprintf("%s://%s%s",$scheme,$host,$path);
-        $query['token'] = qiniu_hmac(sprintf('%s?%s',$uri,http_build_query($query)));
+        $uri = sprintf("%s://%s%s", $scheme, $host, $path);
+        $query['token'] = qiniu_hmac(sprintf('%s?%s', $uri, http_build_query($query)));
         $attname && $query['attname'] = $attname;
         return $uri . '?' . http_build_query($query);
     }
@@ -415,7 +434,7 @@ if(!function_exists('qiniu_download')){
  * = 证书路径 youloge.{$appid}.{apiclient_key}
  * = 证书格式 1. ./file.pem 文件路径 PEM编码的证书/私钥|公钥 2. PEM格式的私钥|公钥
  * =============================
-*/
+ */
 /***
  * 
  * 私钥签名 - 配置路径：[youloge.{appid}.apiclient_key]
@@ -423,15 +442,16 @@ if(!function_exists('qiniu_download')){
  * @param string $appid 选择那个id下得的证书
  * 返回数组 成功 [err=>200,data=>base64] 失败 [err=>500,msg=>'签名错误']
  */
-if(!function_exists('private_sign')){
-    function private_sign($string,$appid){
-      try {
-        @['apiclient_key'=>$apiclient_key] = config("youloge.$appid");
-        openssl_sign($string, $raw_sign, openssl_pkey_get_private($apiclient_key), 'sha256WithRSAEncryption');
-        return ['err'=>200,'data'=>base64_encode($raw_sign)];
-      } catch (\Throwable $e) {
-        return ['err'=>500,'msg'=>$e->getMessage()];
-      }
+if (!function_exists('private_sign')) {
+    function private_sign($string, $appid)
+    {
+        try {
+            @['apiclient_key' => $apiclient_key] = config("youloge.$appid");
+            openssl_sign($string, $raw_sign, openssl_pkey_get_private($apiclient_key), 'sha256WithRSAEncryption');
+            return ['err' => 200, 'data' => base64_encode($raw_sign)];
+        } catch (\Throwable $e) {
+            return ['err' => 500, 'msg' => $e->getMessage()];
+        }
     }
 }
 /***
@@ -443,19 +463,22 @@ if(!function_exists('private_sign')){
  * @param array $data JSON数据 不传设置为 '' false 0 即可
  * @param string $appid 选择那个商户id下得的证书
  */
-if(!function_exists('weixin_request')){
-    function weixin_request($method,$router,$data='',$appid='')
+if (!function_exists('weixin_request')) {
+    function weixin_request($method, $router, $data = '', $appid = '')
     {
-      @['apiclient_key'=>$apiclient_key,'serial_no'=>$serial_no] = config("youloge.$appid");$noncestr = session_create_id();$timestamp = (string)time(); 
-      $body = $data ? json_encode($data,320): '';$method = strtoupper($method);
-      
-      openssl_sign("$method\n$router\n$timestamp\n$noncestr\n$body\n", $raw_sign, openssl_pkey_get_private($apiclient_key), 'sha256WithRSAEncryption');
-      $sign = base64_encode($raw_sign);
-      $authorization = sprintf('WECHATPAY2-SHA256-RSA2048 mchid="%s",nonce_str="%s",signature="%s",timestamp="%d",serial_no="%s"',$appid, $noncestr,$sign, $timestamp, $serial_no);
-  
-      $header = [ 'accept'=>'application/json','authorization'=>$authorization,'User-Agent'=>'https://zh.wikipedia.org/wiki/User_agent','Content-Type'=>'application/json' ];
-      // 返回请求体
-      return [sprintf('https://api.mch.weixin.qq.com%s',$router),['method'=>$method,'headers'=>$header,'data'=>$body]];
+        @['apiclient_key' => $apiclient_key, 'serial_no' => $serial_no] = config("youloge.$appid");
+        $noncestr = session_create_id();
+        $timestamp = (string) time();
+        $body = $data ? json_encode($data, 320) : '';
+        $method = strtoupper($method);
+
+        openssl_sign("$method\n$router\n$timestamp\n$noncestr\n$body\n", $raw_sign, openssl_pkey_get_private($apiclient_key), 'sha256WithRSAEncryption');
+        $sign = base64_encode($raw_sign);
+        $authorization = sprintf('WECHATPAY2-SHA256-RSA2048 mchid="%s",nonce_str="%s",signature="%s",timestamp="%d",serial_no="%s"', $appid, $noncestr, $sign, $timestamp, $serial_no);
+
+        $header = ['accept' => 'application/json', 'authorization' => $authorization, 'User-Agent' => 'https://zh.wikipedia.org/wiki/User_agent', 'Content-Type' => 'application/json'];
+        // 返回请求体
+        return [sprintf('https://api.mch.weixin.qq.com%s', $router), ['method' => $method, 'headers' => $header, 'data' => $body]];
     }
 }
 /**
@@ -464,38 +487,39 @@ if(!function_exists('weixin_request')){
  * 成功返回 对象返回JSON 否则返回 []
  * 失败返回 ['err'=>500,'msg'=>Exception]
  */
-if(!function_exists('weixin_verify')){
+if (!function_exists('weixin_verify')) {
     function weixin_verify($request)
     {
-      try{
-        @['Wechatpay-Timestamp'=>$Timestamp,'Wechatpay-Nonce'=>$Nonce,'Wechatpay-Signature'=>$Signature,'Wechatpay-Serial'=>$Serial] = $request->header();
-        @['platform_cert'=>$platform_cert] = config("youloge.$Serial");$rawBody = $request->getContent();
-        $verify = (bool)openssl_verify("$Timestamp\n$Nonce\n$rawBody\n", base64_decode($Signature), openssl_get_publickey($platform_cert), 'sha256WithRSAEncryption');
-        return $verify ? $request->all() : [];
-      }catch(\Exception $e){
-        return ['err'=>500,'msg'=>$e->getMessage()];
-      }
+        try {
+            @['Wechatpay-Timestamp' => $Timestamp, 'Wechatpay-Nonce' => $Nonce, 'Wechatpay-Signature' => $Signature, 'Wechatpay-Serial' => $Serial] = $request->header();
+            @['platform_cert' => $platform_cert] = config("youloge.$Serial");
+            $rawBody = $request->getContent();
+            $verify = (bool) openssl_verify("$Timestamp\n$Nonce\n$rawBody\n", base64_decode($Signature), openssl_get_publickey($platform_cert), 'sha256WithRSAEncryption');
+            return $verify ? $request->all() : [];
+        } catch (\Exception $e) {
+            return ['err' => 500, 'msg' => $e->getMessage()];
+        }
     }
 }
 /**
- * 微信解密V3 - 配置路径：[youloge.{appid}.v3key]
+ * 微信解密V3 - 配置路径：[youloge.{mchid}.v3key]
  * @param array $encrypt 解密数据 要有['ciphertext','nonce','associated_data'] 
- * @param string $appid 选择那个商户id下得的证书
+ * @param string $mchid 选择那个商户id下得的证书
  * 成功返回 对象返回JSON 否则返回 ['raw'=>$raw]
  * 失败返回 ['err'=>500,'msg'=>Exception]
  */
-if(!function_exists('weixin_decrypt')){
-    function weixin_decrypt($encrypt,$appid)
+if (!function_exists('weixin_decrypt')) {
+    function weixin_decrypt($encrypt, $mchid)
     {
-      try{
-        @['v3key'=>$v3key] = config("youloge.$mchid");
-        @['ciphertext'=>$ciphertext,'nonce'=>$nonce,'associated_data'=>$associated] = $encrypt;
-        $cipher = base64_decode($ciphertext);
-        $decrypt = openssl_decrypt(substr($cipher, 0, -16), 'aes-256-gcm', $v3key, OPENSSL_RAW_DATA, $nonce,substr($cipher, -16), $associated);
-        return json_decode($decrypt,true) ?? ['raw'=>$decrypt];
-      }catch(\Exception $e){
-        return ['err'=>500,'msg'=>$e->getMessage()];
-      }
+        try {
+            @['v3key' => $v3key] = config("youloge.$mchid");
+            @['ciphertext' => $ciphertext, 'nonce' => $nonce, 'associated_data' => $associated] = $encrypt;
+            $cipher = base64_decode($ciphertext);
+            $decrypt = openssl_decrypt(substr($cipher, 0, -16), 'aes-256-gcm', $v3key, OPENSSL_RAW_DATA, $nonce, substr($cipher, -16), $associated);
+            return json_decode($decrypt, true) ?? ['raw' => $decrypt];
+        } catch (\Exception $e) {
+            return ['err' => 500, 'msg' => $e->getMessage()];
+        }
     }
 }
 
@@ -506,22 +530,25 @@ if(!function_exists('weixin_decrypt')){
  * @param array $data  待合并参数
  * @param string $appid  选择那个商户id下得的证书
  */
-if(!function_exists('alipay_request')){
-    function alipay_request($method,$data,$appid)
+if (!function_exists('alipay_request')) {
+    function alipay_request($method, $data, $appid)
     {
-      @['public'=>$public,$method=>$params] = config('youloge.alipay');
-      @['apiclient_key'=>$apiclient_key] = config("youloge.$appid");
-      $body = array_merge($public,$params??[],$data??[],['app_id'=>$appid,'method'=>$method]);
-      ksort($body);
-      openssl_sign(urldecode(http_build_query($body)), $raw_sign, openssl_pkey_get_private($apiclient_key), 'sha256WithRSAEncryption');
-      $body['sign'] = base64_encode($raw_sign);;
-        return [sprintf("https://openapi.alipay.com/gateway.do?%s",http_build_query($body)),[
-          'method' => 'GET',
-          'version' => '1.1',
-          'headers' => ['accept' => 'application/json, text/plain, */*'],
-          // 'data' => $body,
-        ]
-      ];
+        @['public' => $public, $method => $params] = config('youloge.alipay');
+        @['apiclient_key' => $apiclient_key] = config("youloge.$appid");
+        $body = array_merge($public, $params ?? [], $data ?? [], ['app_id' => $appid, 'method' => $method]);
+        ksort($body);
+        openssl_sign(urldecode(http_build_query($body)), $raw_sign, openssl_pkey_get_private($apiclient_key), 'sha256WithRSAEncryption');
+        $body['sign'] = base64_encode($raw_sign);
+        ;
+        return [
+            sprintf("https://openapi.alipay.com/gateway.do?%s", http_build_query($body)),
+            [
+                'method' => 'GET',
+                'version' => '1.1',
+                'headers' => ['accept' => 'application/json, text/plain, */*'],
+                // 'data' => $body,
+            ]
+        ];
     }
 }
 /**
@@ -530,18 +557,20 @@ if(!function_exists('alipay_request')){
  * 成功返回 对象返回JSON 否则返回 []
  * 失败返回 ['err'=>500,'msg'=>Exception]
  */
-if(!function_exists('alipay_verify')){
+if (!function_exists('alipay_verify')) {
     function alipay_verify($request)
     {
-      try{
-        @['public_key'=>$alipay_public_key] = config('youloge.alipay');
-        @['sign'=>$sign,'sign_type'=>$sign_type] = $params = $request->all();
-        unset($params['sign']);unset($params['sign_type']);ksort($params);
-        $verify = (bool)openssl_verify(urldecode(http_build_query($params)), base64_decode($sign), openssl_get_publickey($alipay_public_key), 'sha256WithRSAEncryption');
-        return $verify ? $params : [];
-      }catch(\Exception $e){
-        return ['err'=>500,'msg'=>$e->getMessage()];
-      }
+        try {
+            @['public_key' => $alipay_public_key] = config('youloge.alipay');
+            @['sign' => $sign, 'sign_type' => $sign_type] = $params = $request->all();
+            unset($params['sign']);
+            unset($params['sign_type']);
+            ksort($params);
+            $verify = (bool) openssl_verify(urldecode(http_build_query($params)), base64_decode($sign), openssl_get_publickey($alipay_public_key), 'sha256WithRSAEncryption');
+            return $verify ? $params : [];
+        } catch (\Exception $e) {
+            return ['err' => 500, 'msg' => $e->getMessage()];
+        }
     }
 }
 /**
@@ -550,19 +579,20 @@ if(!function_exists('alipay_verify')){
  * `ini('MYSQL','默认值')` 返回一级配置[数组]
  * `ini('MYSQL.HOST')` 返回三级配置[字符串]
  */
-if(!function_exists('ini')){
-    function ini($keys, $def=''){
-      static $config = [];
-      if (!$config) {
-        $path = Phar::running() ? dirname(Phar::running(false)) : base_path();
-        $config = @parse_ini_file($path.'/.env',true) ?? [];
-      }
-      if($keys === null){
-        return $config;
-      }
-      @[$one,$two] = explode('.', $keys);
-      @[$one=>$item] = $config;
-      return $two === null ? $item ?? $def : $item[$two] ?? $def;
+if (!function_exists('ini')) {
+    function ini($keys, $def = '')
+    {
+        static $config = [];
+        if (!$config) {
+            $path = Phar::running() ? dirname(Phar::running(false)) : base_path();
+            $config = @parse_ini_file($path . '/.env', true) ?? [];
+        }
+        if ($keys === null) {
+            return $config;
+        }
+        @[$one, $two] = explode('.', $keys);
+        @[$one => $item] = $config;
+        return $two === null ? $item ?? $def : $item[$two] ?? $def;
     }
 }
 /**
@@ -570,151 +600,153 @@ if(!function_exists('ini')){
  * 用于兼容 (PHP 8 <= 8.1.0) 7.2+
  * 判断是否可循环数组
  */
-if(!function_exists('array_is_list')){
+if (!function_exists('array_is_list')) {
     function array_is_list($arg)
     {
         return $arg === [] || (array_keys($arg) === range(0, count($arg) - 1));
     }
 }
 /**
-* 验证和处理表单数据
-*
-* 可以通过多个调用方式 实现复杂处理
-*
-* @param object $params 表单数据
-* @return object $rules 验证规则
-* @return bool $intersect 是否只返回验证通过的数据
-* @return array $result 验证结果
-* @throws Exception 验证失败抛出异常 ['err'=>400,'msg'=>'错误提示']
-* @example
-*/
+ * 验证和处理表单数据
+ *
+ * 可以通过多个调用方式 实现复杂处理
+ *
+ * @param object $params 表单数据
+ * @return object $rules 验证规则
+ * @return bool $intersect 是否只返回验证通过的数据
+ * @return array $result 验证结果
+ * @throws Exception 验证失败抛出异常 ['err'=>400,'msg'=>'错误提示']
+ * @example
+ */
 
-if(!function_exists('useValidate')){
-    function useValidate($params, $rules,$intersect = true){
+if (!function_exists('useValidate')) {
+    function useValidate($params, $rules, $intersect = true)
+    {
         $presets = [
             // 基本处理
-            'require' => function($field,$param,$args,$msg='%s 字段不能为空'){
+            'require' => function ($field, $param, $args, $message = '%s 字段不能为空') {
                 // 1. 检查参数是否存在（未提交或值为 null 则视为缺失）
                 if (!isset($param) || $param === null) {
-                    throw new Exception(sprintf($msg, $field));
+                    throw new Exception(sprintf($message, $field));
                 }
                 // 2. 处理字符串类型：排除纯空格（如 '   ' 应视为空）
                 if (is_string($param) && trim($param) === '') {
-                    throw new Exception(sprintf($msg, $field));
+                    throw new Exception(sprintf($message, $field));
                 }
                 // 3. 其他情况（如 0、'0'、false、数组等）视为有效
                 return $param;
             },
-            'required' => function($field,$param,$args,$msg='%s 字段不能为空'){
+            'required' => function ($field, $param, $args, $message = '%s 字段不能为空') {
                 // 1. 检查参数是否存在（未提交或值为 null 则视为缺失）
                 if (!isset($param) || $param === null) {
-                    throw new Exception(sprintf($msg, $field));
+                    throw new Exception(sprintf($message, $field));
                 }
                 // 2. 处理字符串类型：排除纯空格（如 '   ' 应视为空）
                 if (is_string($param) && trim($param) === '') {
-                    throw new Exception(sprintf($msg, $field));
+                    throw new Exception(sprintf($message, $field));
                 }
                 // 3. 其他情况（如 0、'0'、false、数组等）视为有效
                 return $param;
             },
-            'int'=>function($field,$param,$args,$msg=''){
-                return (int)($param??$args);
+            'int' => function ($field, $param, $args, $msg = '') {
+                return (int) ($param ?? $args);
             },
-            'bool'=>function($field,$param,$args,$msg=''){
-                return (bool)($param??$args);
+            'bool' => function ($field, $param, $args, $msg = '') {
+                return (bool) ($param ?? $args);
             },
-            'float'=>function($field,$param,$args,$msg=''){
-                return (float)($param??$args);
+            'float' => function ($field, $param, $args, $msg = '') {
+                return (float) ($param ?? $args);
             },
-            'string'=>function($field,$param,$args,$msg=''){
-                return (string)($param??$args);
+            'string' => function ($field, $param, $args, $msg = '') {
+                return (string) ($param ?? $args);
             },
-            'array'=>function($field,$param,$args,$msg=''){
-                return (array)($param??$args);
+            'array' => function ($field, $param, $args, $msg = '') {
+                return (array) ($param ?? $args);
             },
-            'object'=>function($field,$param,$args,$msg=''){
-                return (object)($param??$args);
+            'object' => function ($field, $param, $args, $msg = '') {
+                return (object) ($param ?? $args);
             },
-            'sprintf'=>function($field,$param,$args='',$msg=''){
-                return sprintf($args,$param);
+            'sprintf' => function ($field, $param, $args = '', $msg = '') {
+                return sprintf($args, $param);
             },
-            'format'=>function($field,$param,$args='',$msg=''){
-                return sprintf($args,$param);
+            'format' => function ($field, $param, $args = '', $msg = '') {
+                return sprintf($args, $param);
             },
             // 常用处理
-            'xss'=>function($field,$param,$args,$msg=''){
-                $replace = str_replace(["'",'"',';','--','%','_','(',')'],'',$param);
-                return strip_tags($replace,$args);
+            'xss' => function ($field, $param, $args, $msg = '') {
+                $replace = str_replace(["'", '"', ';', '--', '%', '_', '(', ')'], '', $param);
+                return strip_tags($replace, $args);
             },
-            'html'=>function($field,$param,$args,$msg=''){
-                return htmlspecialchars($param,$args ?? (ENT_COMPAT | ENT_HTML401));
+            'html' => function ($field, $param, $args, $msg = '') {
+                return htmlspecialchars($param, $args ?? (ENT_COMPAT | ENT_HTML401));
             },
-            'join'=>function($field,$param,$args,$msg=''){
-                return implode($args??',',$param);
+            'join' => function ($field, $param, $args, $msg = '') {
+                return implode($args ?? ',', $param);
             },
-            'trim' => function($field,$param,$args,$msg=''){
-                return trim((string)$param)??$args;
+            'trim' => function ($field, $param, $args, $msg = '') {
+                return trim((string) $param) ?? $args;
             },
-            'upper'=>function($field,$param,$args,$msg=''){
-                return strtoupper($param)??$args;
+            'upper' => function ($field, $param, $args, $msg = '') {
+                return strtoupper($param) ?? $args;
             },
-            'lower'=>function($field,$param,$args,$msg=''){
-                return strtolower($param)??$args;
+            'lower' => function ($field, $param, $args, $msg = '') {
+                return strtolower($param) ?? $args;
             },
             // 常用验证
-            'email' => function($field,$param,$args,$msg='%s 字段值必须是邮箱'){
-                if(filter_var($param, FILTER_VALIDATE_EMAIL)){
+            'email' => function ($field, $param, $args, $msg = '%s 字段值必须是邮箱') {
+                if (filter_var($param, FILTER_VALIDATE_EMAIL)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field));
+                throw new Exception(sprintf($msg, $field));
             },
-            'mobile' => function($field,$param,$args,$msg='%s 字段值必须是手机号'){
+            'mobile' => function ($field, $param, $args, $msg = '%s 字段值必须是手机号') {
                 $options = [
-                    'options'=>[
-                        'regexp'=>"/^1[3456789]\d{9}$/"
+                    'options' => [
+                        'regexp' => "/^1[3456789]\d{9}$/"
                     ]
                 ];
-                if(filter_var($param, FILTER_VALIDATE_REGEXP, $options)){
-                    return  $param;
-                }
-                throw new Exception(sprintf($msg,$field));
-            },
-            'url'=>function($field,$param,$args,$msg='%s 字段值必须是网址'){
-                if(filter_var($param, FILTER_VALIDATE_URL)){
-                    return  $param;
-                }
-                throw new Exception(sprintf($msg,$field));
-            },
-            'ip'=>function($field,$param,$args,$msg='%s 字段值必须是IP地址'){
-                if(filter_var($param, FILTER_VALIDATE_IP)){
-                    return  $param;
-                }
-                throw new Exception(sprintf($msg,$field));
-            },
-            'date'=>function($field,$param,$args,$msg='%s 字段值必须是%s日期格式'){
-                $format = $args ?? 'Y-m-d H:i:s';$dateTime = DateTime::createFromFormat($format, $param);
-                if($dateTime &&  !$dateTime->getLastErrors()['warning_count']){
+                if (filter_var($param, FILTER_VALIDATE_REGEXP, $options)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$format));
+                throw new Exception(sprintf($msg, $field));
             },
-            'time'=>function($field,$param,$args,$msg='%s 字段值必须是时间戳'){
+            'url' => function ($field, $param, $args, $msg = '%s 字段值必须是网址') {
+                if (filter_var($param, FILTER_VALIDATE_URL)) {
+                    return $param;
+                }
+                throw new Exception(sprintf($msg, $field));
+            },
+            'ip' => function ($field, $param, $args, $msg = '%s 字段值必须是IP地址') {
+                if (filter_var($param, FILTER_VALIDATE_IP)) {
+                    return $param;
+                }
+                throw new Exception(sprintf($msg, $field));
+            },
+            'date' => function ($field, $param, $args, $msg = '%s 字段值必须是%s日期格式') {
+                $format = $args ?? 'Y-m-d H:i:s';
+                $dateTime = DateTime::createFromFormat($format, $param);
+                if ($dateTime && !$dateTime->getLastErrors()['warning_count']) {
+                    return $param;
+                }
+                throw new Exception(sprintf($msg, $field, $format));
+            },
+            'time' => function ($field, $param, $args, $msg = '%s 字段值必须是时间戳') {
                 if (!is_numeric($param) || intval($param) != $param) {
-                    throw new Exception(sprintf($msg,$field));
+                    throw new Exception(sprintf($msg, $field));
                 }
                 $minTimestamp = strtotime('1970-01-01'); // 0
                 $maxTimestamp = strtotime('2099-01-01'); // 4070908800000 32位是2038-01-19
-                if($param <= $minTimestamp || $param >= $maxTimestamp){
-                throw new Exception(sprintf($msg,$field));
+                if ($param <= $minTimestamp || $param >= $maxTimestamp) {
+                    throw new Exception(sprintf($msg, $field));
                 }
                 return $param;
             },
-            'idcard'=>function($field,$param,$args,$msg='%s 字段值必须是身份证号 %s'){
-                if(strlen($param)!==18){
-                throw new Exception(sprintf($msg,$field,'长度不足'));
+            'idcard' => function ($field, $param, $args, $msg = '%s 字段值必须是身份证号 %s') {
+                if (strlen($param) !== 18) {
+                    throw new Exception(sprintf($msg, $field, '长度不足'));
                 }
-                if(preg_match('/^\d{17}[\dXx]$/', $param) == false){
-                throw new Exception(sprintf($msg,$field,'格式错误'));
+                if (preg_match('/^\d{17}[\dXx]$/', $param) == false) {
+                    throw new Exception(sprintf($msg, $field, '格式错误'));
                 }
                 // 加权因子
                 $weightFactors = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
@@ -727,156 +759,221 @@ if(!function_exists('useValidate')){
                 }
                 $mod = $sum % 11;
                 $checkCode = $checkCodes[$mod];
-                if(strtoupper($param[17]) !== $checkCode){
-                throw new Exception(sprintf($msg,$field,'校验错误'));
+                if (strtoupper($param[17]) !== $checkCode) {
+                    throw new Exception(sprintf($msg, $field, '校验错误'));
                 }
                 return $param;
             },
-            'regex'=>function($field,$param,$args,$msg='%s 字段值格式错误'){
-                if(preg_match($args, $param) === false){
-                throw new Exception(sprintf($msg,$field));
+            'regex' => function ($field, $param, $args, $msg = '%s 字段值格式错误') {
+                if (preg_match($args, $param) === false) {
+                    throw new Exception(sprintf($msg, $field));
                 }
                 return $param;
             },
-            'test'=>function($field,$param,$args,$msg='%s 字段值格式错误'){
-                if(preg_match($args, $param) === false){
-                    throw new Exception(sprintf($msg,$field));
+            'test' => function ($field, $param, $args, $msg = '%s 字段值格式错误') {
+                if (preg_match($args, $param) === false) {
+                    throw new Exception(sprintf($msg, $field));
                 }
                 return $param;
             },
             //数字相关
-            'min'=>function($field,$param,$args,$msg='%s 字段数字不能小与%s'){
-                $min = min(explode(',',$args));
-                if(is_numeric($param) && $param >= $min){
+            'min' => function ($field, $param, $args, $msg = '%s 字段数字不能小与%s') {
+                $min = min(explode(',', $args));
+                if (is_numeric($param) && $param >= $min) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$min));
+                throw new Exception(sprintf($msg, $field, $min));
             },
-            'max'=>function($field,$param,$args,$msg='%s 字段数字不能大于%s'){
-                $max = max(explode(',',$args));
-                if(is_numeric($param) && ($param <= $max)){
+            'max' => function ($field, $param, $args, $msg = '%s 字段数字不能大于%s') {
+                $max = max(explode(',', $args));
+                if (is_numeric($param) && ($param <= $max)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$max));
+                throw new Exception(sprintf($msg, $field, $max));
             },
-            'between' => function($field,$param,$args,$msg='%s 字段数字必须在%s和%s之间'){
-                $conf = explode(',',$args);$min = min($conf);$max = max($conf);
-                if(is_numeric($param) && $param >= $min && $param <= $max){
+            'between' => function ($field, $param, $args, $msg = '%s 字段数字必须在%s和%s之间') {
+                $conf = explode(',', $args);
+                $min = min($conf);
+                $max = max($conf);
+                if (is_numeric($param) && $param >= $min && $param <= $max) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$min,$max));
+                throw new Exception(sprintf($msg, $field, $min, $max));
             },
             // 字符串相关
-            'start' => function($field,$param,$args,$msg='%s 字段值必须以%s开头'){
-                if(str_starts_with($param, $args)){
+            'start' => function ($field, $param, $args, $msg = '%s 字段值必须以%s开头') {
+                // throw new Exception((string)$param);
+                if (str_starts_with($param, $args)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$args));
+                throw new Exception(sprintf($msg, $field, $args));
             },
-            'end' => function($field,$param,$args,$msg='%s 字段值必须以%s结尾'){
-                if(str_ends_with($param, $args)){
-                    return $param; 
-                }
-                throw new Exception(sprintf($msg,$field,$args));
-            },
-            'digit' => function($field,$param,$args,$msg='%s 字段值必须是数字'){
-                if(ctype_digit($param)){
+            'end' => function ($field, $param, $args, $msg = '%s 字段值必须以%s结尾') {
+                if (str_ends_with($param, $args)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field));
+                throw new Exception(sprintf($msg, $field, $args));
             },
-            'alpha'=>function($field,$param,$args,$msg='%s 字段值必须是字母'){
-                if(ctype_alpha($param)){
+            'digit' => function ($field, $param, $args, $msg = '%s 字段值必须是数字') {
+                if (ctype_digit($param)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field));
+                throw new Exception(sprintf($msg, $field));
             },
-            'alphanum'=>function($field,$param,$args,$msg='%s 字段值必须是字母和数字'){
-                if(ctype_alnum($param)){
+            'alpha' => function ($field, $param, $args, $msg = '%s 字段值必须是字母') {
+                if (ctype_alpha($param)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field));
+                throw new Exception(sprintf($msg, $field));
             },
-            'length'=>function($field,$param,$args,$msg='%s 字段长度必须%s~%s个字符'){
-                $conf = explode(',',$args);$min = min($conf);$max = max($conf);$len = mb_strlen($param);
-                if($len >= $min && $len <= $max){
+            'alphanum' => function ($field, $param, $args, $msg = '%s 字段值必须是字母和数字') {
+                if (ctype_alnum($param)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$min,$max));
+                throw new Exception(sprintf($msg, $field));
             },
-            'len'=>function($field,$param,$args,$msg='%s 字段长度必须%s~%s个字符'){
-                $conf = explode(',',$args);$min = min($conf);$max = max($conf);$len = mb_strlen($param);
-                if($len >= $min && $len <= $max){
+            'length' => function ($field, $param, $args, $msg = '%s 字段长度必须%s~%s个字符') {
+                $conf = explode(',', $args);
+                $min = min($conf);
+                $max = max($conf);
+                $len = mb_strlen($param);
+                if ($len >= $min && $len <= $max) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$min,$max));
+                throw new Exception(sprintf($msg, $field, $min, $max));
             },
-            'in' => function($field,$param,$args,$msg='%s 字段值必须在%s范围中'){
-                $conf = explode(',',$args);
-                if(in_array($param,$conf)){
+            'len' => function ($field, $param, $args, $msg = '%s 字段长度必须%s~%s个字符') {
+                $conf = explode(',', $args);
+                $min = min($conf);
+                $max = max($conf);
+                $len = mb_strlen($param);
+                if ($len >= $min && $len <= $max) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$args));
+                throw new Exception(sprintf($msg, $field, $min, $max));
             },
-            'not' => function($field,$param,$args,$msg='%s 字段值不能在%s范围中'){
-                $conf = explode(',',$args);
-                if(in_array($param,$conf) == false){
+            'in' => function ($field, $param, $args, $msg = '%s 字段值必须在%s范围中') {
+                $conf = explode(',', $args);
+                if (in_array($param, $conf)) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$args));
+                throw new Exception(sprintf($msg, $field, $args));
             },
-            'count'=>function($field,$param,$args,$msg='%s 字段值数量必须%s~%s个'){
-                $conf = explode(',',$args);$min = min($conf);$max = max($conf);
-                
-                if(is_array($param) && count($param) >= $min && count($param) <= $max){
+            'not' => function ($field, $param, $args, $msg = '%s 字段值不能在%s范围中') {
+                $conf = explode(',', $args);
+                if (in_array($param, $conf) == false) {
                     return $param;
                 }
-                throw new Exception(sprintf($msg,$field,$min,$max));
+                throw new Exception(sprintf($msg, $field, $args));
+            },
+            'count' => function ($field, $param, $args, $message = '%s 字段值数量必须%s~%s个') {
+                $conf = explode(',', $args);
+                $min = min($conf);
+                $max = max($conf);
+
+                if (is_array($param) && count($param) >= $min && count($param) <= $max) {
+                    return $param;
+                }
+                throw new Exception(sprintf($message, $field, $min, $max));
             }
         ];
-        // continue  break
-        try {
-            foreach ($rules as $field => $expression) {
-                @[$field=>$param] = $params;
-                // 
-                if(is_iterable($expression)){
-                    if(array_is_list($expression)){
-                        @[$first] = $expression;
-                        foreach ($params[$field] as $inx => $paraming) {
-                            @['err'=>$err,'msg'=>$msg] = $back = useValidate(is_string($first) ? [$paraming] : $paraming,is_string($first) ? $expression : $first,$intersect);
-                            if($err === 400){ throw new Exception("$field.$inx.$msg"); }
-                            $params[$field][$inx] = $back;
-                        }
-                    }else{
-                        foreach ($expression as $expressions) {
-                            @['err'=>$err,'msg'=>$msg] = $back = useValidate($param,$expression,$intersect);
-                            if($err === 400){ throw new Exception("$field.$msg"); }
-                            $params[$field] = $back;
-                        }
+        // 核心：递归处理规则（支持数据流转）
+        $processRule = function ($field, $value, $rule) use (&$processRule, $presets) {
+            // 1. 字符串规则（单规则/多规则组合，支持数据流转）
+            if (is_string($rule)) {
+                @[$lambda, $customMsg] = explode('#', $rule . '#', 2);
+                $lambdas = explode('|', $lambda);
+
+                // 关键：遍历多规则时，前一个规则的处理结果作为后一个的输入
+                foreach ($lambdas as $_lambda) {
+                    @[$ruleName, $ruleArgs] = explode(':', $_lambda, 2);
+                    $method = $presets[$ruleName] ?? null;
+
+                    if (!$method)
+                        continue;
+
+                    // 执行规则：处理后的值覆盖原value（流转核心）
+                    try {
+                        $value = $method($field, $value, $ruleArgs);
+                    } catch (Exception $e) {
+                        // 自定义错误信息优先
+                        throw new Exception($e->getMessage());
                     }
-                    continue;
                 }
-                // 
-                @[$rule, $customMsg] = explode('#', $expression);$allows = explode('|', $rule);
-                $required = str_contains($rule,'required');
-                foreach ($allows as $singleRule) {
-                    @[$field=>$param] = $params;
-                    @[$ruleName, $ruleParam] = explode(':', $singleRule,2);
-                    @[$ruleName=>$call] = $presets;
-                    if(($param === null && $required === false) || $call === null){ 
-                        if(in_array($ruleName,['int','bool','float','string','array','object']) && is_null($ruleParam) == false){
-                            $params[$field] = $ruleParam;
-                        }
-                        continue; 
-                    }
-                    $args = [$field,$param,$ruleParam];$customMsg && array_push($args,$customMsg);
-                    $params[$field] = $call(...$args);
+                return $value;
+            }
+
+            // 2. 闭包规则（自定义预处理，结果流转）
+            if (is_callable($rule)) {
+                try {
+                    // 闭包返回的预处理结果，作为后续规则的输入
+                    return $rule($field, $value);
+                } catch (Exception $e) {
+                    throw new Exception($e->getMessage());
                 }
             }
-            // 是否返回交集
-            return $intersect ? array_intersect_key($params,$rules) : $params;
+
+            // 3. 索引数组 = 流水线规则（多步骤流转）
+            if (array_is_list($rule)) {
+                // 3.1 一维数组规则：单元素索引数组 ['rule'] → 遍历每个元素校验
+                if (count($rule) === 1) {
+                    if (!is_array($value)) {
+                        throw new Exception("{$field}：必须是一维数组（需遍历每个元素校验）");
+                    }
+                    $result = [];
+                    foreach ($value as $index => $item) {
+                        $itemPath = "{$field}[{$index}]";
+                        // 对数组每个元素，递归执行单条规则
+                        $result[$index] = $processRule($itemPath, $item, $rule[0]);
+                    }
+                    return $result;
+                }
+                // 3.2 流水线规则：多元素索引数组 [rule1, rule2] → 步骤流转处理
+                if (count($rule) > 1) {
+                    $currentValue = $value;
+                    foreach ($rule as $stepIdx => $step) {
+                        $stepPath = "{$field}";
+                        // 流水线每一步结果流转
+                        $currentValue = $processRule($stepPath, $currentValue, $step);
+                    }
+                    return $currentValue;
+                }
+            }
+
+            // 4. 关联数组 = 单个对象规则（子字段数据流转）
+            if (is_array($rule) && !array_is_list($rule)) {
+                if (!is_array($value))
+                    $value = [];
+                $result = [];
+                foreach ($rule as $key => $subRule) {
+                    $subPath = "{$field}.{$key}";
+                    // 子字段处理结果流转
+                    $result[$key] = $processRule($subPath, $value[$key] ?? null, $subRule);
+                }
+                return $result;
+            }
+
+            throw new Exception("{$field}：不支持的规则类型");
+        };
+
+        // try-catch 统一处理异常
+        try {
+            foreach ($rules as $field => $rule) {
+                // 核心：当前字段的处理结果
+                $params[$field] = $processRule(
+                    $field,
+                    $params[$field] ?? null,
+                    $rule,
+                );
+            }
+            // 验证成功：返回交集/全部数据（基于最终处理后的参数）
+            return $intersect
+                ? array_intersect_key($params, $rules)
+                : $params;
         } catch (Exception $e) {
-            return ['err'=>400,'msg'=>$e->getMessage()];
+            // 统一返回错误格式
+            return ['err' => 400, 'msg' => $e->getMessage()];
         }
+
     }
 }
